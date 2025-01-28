@@ -156,8 +156,8 @@ const handleSubmit = async () => {
   error.value = null;
   
   try {
-    // Convert minutes and seconds to PostgreSQL interval format
-    const duration = `${minutes.value}:${seconds.value.toString().padStart(2, '0')}:00`;
+    // Convert minutes and seconds to PostgreSQL interval format, without adding extra seconds
+    const duration = `${minutes.value}:${seconds.value.toString().padStart(2, '0')}`;
     
     await store.addSong({
       ...songData.value,
