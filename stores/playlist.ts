@@ -63,18 +63,23 @@ export const usePlaylistStore = defineStore('playlist', () => {
   // Toggle song in setlist
   async function toggleSongInSetlist(songId: string, isInSetlist: boolean) {
     try {
-      const maxOrderQuery = await supabase
+      // First, fetch the current maximum setlist order
+      const { data: maxOrderData, error: maxOrderError } = await supabase
         .from('playlist_songs')
         .select('setlist_order')
         .eq('is_in_setlist', true)
         .order('setlist_order', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      const nextOrder = maxOrderQuery.data?.setlist_order 
-        ? maxOrderQuery.data.setlist_order + 1 
+      if (maxOrderError) throw maxOrderError;
+
+      // Calculate the next order value
+      const nextOrder = maxOrderData?.setlist_order 
+        ? maxOrderData.setlist_order + 1 
         : 1;
 
+      // Update the song
       const { error: updateError } = await supabase
         .from('playlist_songs')
         .update({ 
@@ -93,12 +98,15 @@ export const usePlaylistStore = defineStore('playlist', () => {
   // Update setlist order
   async function updateSetlistOrder(songs: PlaylistSong[]) {
     try {
-      // Update each song's order in a transaction or batch
+      error.value = null;
+      
+      // Update orders one by one to respect RLS
       for (let i = 0; i < songs.length; i++) {
         const { error: updateError } = await supabase
           .from('playlist_songs')
           .update({ setlist_order: i + 1 })
-          .eq('id', songs[i].id);
+          .eq('id', songs[i].id)
+          .single();
 
         if (updateError) throw updateError;
       }
