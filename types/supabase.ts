@@ -37,6 +37,7 @@ export interface Database {
           notes: string | null
           is_in_setlist: boolean
           setlist_order: number | null
+          thumbnail_url: string | null  // Add this new field
         }
         Insert: Omit<Database['public']['Tables']['playlist_songs']['Row'],
           'id' | 'created_at' | 'updated_at' | 'is_in_setlist' | 'setlist_order'>

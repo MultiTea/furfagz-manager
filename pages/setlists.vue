@@ -34,6 +34,24 @@
                   {{ index + 1 }}.
                 </div>
 
+                <!-- Thumbnail -->
+                <div class="flex-shrink-0">
+                  <img 
+                    v-if="song.thumbnail_url" 
+                    :src="song.thumbnail_url" 
+                    :alt="song.title"
+                    class="h-14 w-14 object-cover rounded-lg"
+                  />
+                  <div 
+                    v-else 
+                    class="h-14 w-14 bg-gray-100 rounded-lg flex items-center justify-center"
+                  >
+                    <svg class="h-7 w-7 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                    </svg>
+                  </div>
+                </div>
+
                 <div class="flex-1">
                   <h4 class="text-lg font-semibold text-gray-900">{{ song.title }}</h4>
                   <p class="text-sm text-gray-500">{{ song.artist }}</p>
@@ -103,6 +121,24 @@
 
                   <div class="flex-none w-8 text-gray-500 font-medium">
                     {{ index + 1 }}.
+                  </div>
+
+                  <!-- Thumbnail -->
+                  <div class="flex-shrink-0">
+                    <img 
+                      v-if="song.thumbnail_url" 
+                      :src="song.thumbnail_url" 
+                      :alt="song.title"
+                      class="h-14 w-14 object-cover rounded-lg"
+                    />
+                    <div 
+                      v-else 
+                      class="h-14 w-14 bg-gray-100 rounded-lg flex items-center justify-center"
+                    >
+                      <svg class="h-7 w-7 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                      </svg>
+                    </div>
                   </div>
 
                   <div class="flex-1">

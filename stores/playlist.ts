@@ -39,6 +39,71 @@ export const usePlaylistStore = defineStore('playlist', () => {
     }
   }
 
+  // Update an existing song
+  async function updateSong(id: string, updates: Partial<PlaylistSong>) {
+    if (!user.value) {
+      throw new Error('User must be authenticated to update songs');
+    }
+
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      const { data, error: supabaseError } = await supabase
+        .from('playlist_songs')
+        .update(updates)
+        .eq('id', id)
+        .eq('member_id', user.value.id) // Ensure user owns the song
+        .select()
+        .single();
+
+      if (supabaseError) throw supabaseError;
+      
+      if (data) {
+        // Update local state
+        const index = songs.value.findIndex(song => song.id === id);
+        if (index !== -1) {
+          songs.value[index] = data;
+        }
+      }
+      
+      return data;
+    } catch (e: any) {
+      error.value = e.message;
+      throw e;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Delete a song
+  async function deleteSong(id: string) {
+    if (!user.value) {
+      throw new Error('User must be authenticated to delete songs');
+    }
+
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      const { error: supabaseError } = await supabase
+        .from('playlist_songs')
+        .delete()
+        .eq('id', id)
+        .eq('member_id', user.value.id); // Ensure user owns the song
+
+      if (supabaseError) throw supabaseError;
+      
+      // Update local state
+      songs.value = songs.value.filter(song => song.id !== id);
+    } catch (e: any) {
+      error.value = e.message;
+      throw e;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   // Fetch setlist songs
   async function fetchSetlistSongs() {
     isLoading.value = true;
@@ -126,6 +191,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
     duration: string;
     link?: string | null;
     notes?: string | null;
+    thumbnail_url?: string | null;
   }) {
     if (!user.value) {
       throw new Error('User must be authenticated to add songs');
@@ -141,7 +207,8 @@ export const usePlaylistStore = defineStore('playlist', () => {
         title: songData.title,
         duration: songData.duration,
         link: songData.link || null,
-        notes: songData.notes || null
+        notes: songData.notes || null,
+        thumbnail_url: songData.thumbnail_url || null
       };
 
       const { data, error: supabaseError } = await supabase
@@ -174,6 +241,8 @@ export const usePlaylistStore = defineStore('playlist', () => {
     fetchSetlistSongs,
     toggleSongInSetlist,
     updateSetlistOrder,
-    addSong
+    addSong,
+    updateSong,
+    deleteSong
   };
 });
