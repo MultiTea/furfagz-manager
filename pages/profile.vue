@@ -3,27 +3,36 @@
     <div class="max-w-2xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <div class="bg-white shadow sm:rounded-lg">
         <div class="px-4 py-5 sm:p-6">
-          <h1 class="text-2xl font-bold text-gray-900 mb-6">
-            {{ profile ? 'Edit Profile' : 'Complete Your Profile' }}
-          </h1>
+          <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">
+              {{ profile ? 'Edit Profile' : 'Complete Your Profile' }}
+            </h1>
+            <button
+              v-if="!isNewUser"
+              @click="handleBack"
+              class="text-sm text-gray-600 hover:text-gray-900"
+            >
+              Back
+            </button>
+          </div>
   
           <div v-if="error" class="mb-4 p-4 bg-red-50 border border-red-400 rounded text-red-700">
             {{ error }}
           </div>
-
+  
           <form @submit.prevent="handleSubmit" class="space-y-6">
             <div>
-            <label class="block text-sm font-medium text-gray-700">
-              Profile Image
-            </label>
-            <div class="mt-1">
-              <ProfileImageUpload
-                :current-image-url="formData.avatar_url"
-                :username="formData.username"
-                @update:image="handleImageUpdate"
-              />
+              <label class="block text-sm font-medium text-gray-700">
+                Profile Image
+              </label>
+              <div class="mt-1">
+                <ProfileImageUpload
+                  :current-image-url="formData.avatar_url"
+                  :username="formData.username"
+                  @update:image="handleImageUpdate"
+                />
+              </div>
             </div>
-          </div>
             <div>
               <label for="username" class="block text-sm font-medium text-gray-700">
                 Username
@@ -74,27 +83,31 @@
   import type { Database } from '~/types/supabase';
   import ProfileImageUpload from '~/components/ProfileImageUpload.vue';
   
-  // Define the type for our form data
-  type FormData = {
+  interface FormData {
     username: string;
     full_name: string;
     role: Database['public']['Tables']['band_members']['Row']['role'];
-  };
+    avatar_url: string | null;
+  }
   
   const store = useProfileStore();
   const { profile, isLoading, error } = storeToRefs(store);
+  const router = useRouter();
   
-  // Initialize form data with proper typing
-  const formData = ref({
-  username: '',
-  full_name: '',
-  role: 'member' as const,
-  avatar_url: null as string | null  // Add this line
-});
-
-const handleImageUpdate = (url: string | null) => {
-  formData.value.avatar_url = url;
-};
+  // Check if this is a new user (no profile yet)
+  const isNewUser = computed(() => !profile.value);
+  
+  // Initialize form data with default values
+  const formData = ref<FormData>({
+    username: '',
+    full_name: '',
+    role: profile.value?.role || 'member',
+    avatar_url: null
+  });
+  
+  const handleImageUpdate = (url: string | null) => {
+    formData.value.avatar_url = url;
+  };
   
   // Load existing profile data if available
   onMounted(async () => {
@@ -103,16 +116,27 @@ const handleImageUpdate = (url: string | null) => {
       formData.value = {
         username: profile.value.username,
         full_name: profile.value.full_name || '',
-        role: profile.value.role
+        role: profile.value.role,
+        avatar_url: profile.value.avatar_url
       };
     }
   });
   
+  const handleBack = () => {
+    router.back();
+  };
+  
   const handleSubmit = async () => {
     try {
       await store.upsertProfile(formData.value);
-      // Redirect to home page after successful profile creation/update
-      navigateTo('/');
+      
+      // If this is a new user, redirect to home
+      // Otherwise, go back to the previous page
+      if (isNewUser.value) {
+        navigateTo('/');
+      } else {
+        router.back();
+      }
     } catch (e) {
       // Error is handled by the store and displayed in the template
     }

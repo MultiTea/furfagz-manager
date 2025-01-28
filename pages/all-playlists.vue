@@ -43,6 +43,18 @@
               <ul role="list" class="-my-5 divide-y divide-gray-200">
                 <li v-for="song in member.playlist_songs" :key="song.id" class="py-4">
                   <div class="flex items-center space-x-4">
+                    <!-- Setlist Checkbox -->
+                    <div class="flex items-center h-5">
+                      <input
+                        type="checkbox"
+                        :id="'setlist-' + song.id"
+                        :checked="song.is_in_setlist"
+                        :disabled="!isAdmin"
+                        @change="handleSetlistToggle(song)"
+                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-50"
+                      >
+                    </div>
+  
                     <div class="flex-1 min-w-0">
                       <p class="text-sm font-medium text-gray-900 truncate">
                         {{ song.title }}
@@ -91,19 +103,50 @@
   <script setup lang="ts">
   import { storeToRefs } from 'pinia';
   import { useMembersStore } from '~/stores/members';
+  import { usePlaylistStore } from '~/stores/playlist';
+  import type { Database } from '~/types/supabase';
   
-  const store = useMembersStore();
-  const { members, isLoading, error } = storeToRefs(store);
+  const membersStore = useMembersStore();
+  const playlistStore = usePlaylistStore();
+  const { members, isLoading, error } = storeToRefs(membersStore);
   
-  // Fetch data when component mounts
-  onMounted(() => {
-    store.fetchMembersWithPlaylists();
+  // Get current user role
+  const supabase = useSupabaseClient<Database>();
+  const user = useSupabaseUser();
+  const isAdmin = ref(false);
+  
+  // Check if current user is admin
+  onMounted(async () => {
+    if (user.value) {
+      const { data } = await supabase
+        .from('band_members')
+        .select('role')
+        .eq('id', user.value.id)
+        .single();
+      
+      isAdmin.value = data?.role === 'admin';
+    }
+    
+    membersStore.fetchMembersWithPlaylists();
   });
   
   // Format duration from PostgreSQL interval to readable format
   function formatDuration(duration: string) {
     const [minutes, seconds] = duration.split(':');
     return `${minutes}:${seconds.padStart(2, '0')}`;
+  }
+  
+  // Handle setlist toggle
+  async function handleSetlistToggle(song: Database['public']['Tables']['playlist_songs']['Row']) {
+    if (!isAdmin.value) return;
+    
+    try {
+      await playlistStore.toggleSongInSetlist(song.id, !song.is_in_setlist);
+      // Refresh the members list to update the UI
+      await membersStore.fetchMembersWithPlaylists();
+    } catch (e) {
+      console.error('Error toggling setlist status:', e);
+    }
   }
   
   // Show song notes in a dialog

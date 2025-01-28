@@ -38,23 +38,35 @@
             accept="image/*"
             @change="handleFileSelect"
           />
-          <button
-            @click="$refs.fileInput.click()"
-            :disabled="isLoading"
-            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-          >
-            {{ currentImageUrl ? 'Change Image' : 'Upload Image' }}
-          </button>
-          
-          <button
-            v-if="currentImageUrl"
-            @click="handleRemoveImage"
-            :disabled="isLoading"
-            class="ml-2 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-          >
-            Remove
-          </button>
+  
+          <div class="flex flex-col space-y-2">
+            <!-- Select File Button -->
+            <button
+              type="button"
+              @click="$refs.fileInput.click()"
+              :disabled="isLoading"
+              class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            >
+              {{ currentImageUrl ? 'Change Image' : 'Select Image' }}
+            </button>
+  
+            <!-- Remove Image Button -->
+            <button
+              v-if="currentImageUrl"
+              type="button"
+              @click="handleRemoveImage"
+              :disabled="isLoading"
+              class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            >
+              Remove Image
+            </button>
+          </div>
         </div>
+      </div>
+      
+      <!-- Selected File Name -->
+      <div v-if="selectedFileName" class="text-sm text-gray-600">
+        Selected file: {{ selectedFileName }}
       </div>
       
       <p v-if="error" class="text-sm text-red-600">
@@ -82,6 +94,7 @@
   const fileInput = ref<HTMLInputElement | null>(null);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
+  const selectedFileName = ref<string | null>(null);
   
   // Compute initials for avatar placeholder
   const initials = computed(() => {
@@ -98,6 +111,7 @@
     if (!input.files?.length) return;
   
     const file = input.files[0];
+    selectedFileName.value = file.name;
     isLoading.value = true;
     error.value = null;
   
@@ -128,11 +142,12 @@
   
       // Emit the new URL
       emit('update:image', publicUrl);
+      selectedFileName.value = null; // Clear the selected file name after successful upload
     } catch (e: any) {
       error.value = e.message;
     } finally {
       isLoading.value = false;
-      if (fileInput.value) fileInput.value.value = '';
+      if (fileInput.value) fileInput.value.value = ''; // Reset the file input
     }
   }
   

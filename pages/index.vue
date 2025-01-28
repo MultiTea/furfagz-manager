@@ -35,44 +35,62 @@
                 </NuxtLink>
               </div>
               
-              <!-- Setlists Card -->
+              <!-- Setlist Card -->
               <div class="bg-purple-50 p-6 rounded-lg">
-                <template v-if="bandMember?.role === 'admin'">
-                  <h2 class="text-lg font-medium text-purple-700">Manage Setlists</h2>
-                  <p class="text-purple-600 mt-2">Create and manage performance setlists.</p>
-                  <NuxtLink 
-                    to="/admin/setlists" 
-                    class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
-                  >
-                    Manage Setlists
-                  </NuxtLink>
-                </template>
-                <template v-else>
-                  <h2 class="text-lg font-medium text-purple-700">View Setlists</h2>
-                  <p class="text-purple-600 mt-2">Check out the upcoming performance setlists.</p>
-                  <NuxtLink 
-                    to="/setlists" 
-                    class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
-                  >
-                    View Setlists
-                  </NuxtLink>
-                </template>
+                <h2 class="text-lg font-medium text-purple-700">
+                  {{ bandMember?.role === 'admin' ? 'Manage Setlist' : 'View Setlist' }}
+                </h2>
+                <p class="text-purple-600 mt-2">
+                  {{ bandMember?.role === 'admin' 
+                    ? 'Create and manage the band setlist.' 
+                    : 'Check out the current band setlist.' }}
+                </p>
+                <NuxtLink 
+                  to="/setlists" 
+                  class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
+                >
+                  {{ bandMember?.role === 'admin' ? 'Manage Setlist' : 'View Setlist' }}
+                </NuxtLink>
               </div>
             </div>
   
-            <!-- Quick Stats Section remains the same -->
+            <!-- Quick Stats Section -->
+            <div class="mt-8 bg-gray-50 p-6 rounded-lg">
+              <h3 class="text-lg font-medium text-gray-900">Quick Stats</h3>
+              <dl class="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-3">
+                <div class="px-4 py-5 bg-white shadow rounded-lg overflow-hidden sm:p-6">
+                  <dt class="text-sm font-medium text-gray-500">Your Suggestions</dt>
+                  <dd class="mt-1 text-3xl font-semibold text-gray-900">{{ suggestionCount }}</dd>
+                </div>
+                <div class="px-4 py-5 bg-white shadow rounded-lg overflow-hidden sm:p-6">
+                  <dt class="text-sm font-medium text-gray-500">Selected for Setlist</dt>
+                  <dd class="mt-1 text-3xl font-semibold text-gray-900">{{ selectedCount }}</dd>
+                </div>
+                <div class="px-4 py-5 bg-white shadow rounded-lg overflow-hidden sm:p-6">
+                  <dt class="text-sm font-medium text-gray-500">Total Setlist Songs</dt>
+                  <dd class="mt-1 text-3xl font-semibold text-gray-900">{{ setlistCount }}</dd>
+                </div>
+              </dl>
+            </div>
           </div>
   
-          <!-- Login prompt section remains the same -->
+          <div v-else class="text-center">
+            <p class="text-gray-600">Please log in to access the band setlist manager.</p>
+            <NuxtLink
+              to="/login"
+              class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+            >
+              Log In
+            </NuxtLink>
+          </div>
         </div>
       </div>
     </div>
   </template>
   
-<script setup lang="ts">
-import { storeToRefs } from 'pinia';
-import { usePlaylistStore } from '~/stores/playlist';
-import type { Database } from '~/types/supabase';
+  <script setup lang="ts">
+  import { storeToRefs } from 'pinia';
+  import type { Database } from '~/types/supabase';
   
   // Authentication and user info
   const user = useSupabaseUser();
@@ -111,20 +129,21 @@ import type { Database } from '~/types/supabase';
     
     suggestionCount.value = suggestionsCount || 0;
   
-    // Fetch count of user's songs selected for setlists
+    // Fetch count of user's songs in setlist
     const { count: selectedSongsCount } = await supabase
-      .from('setlist_songs')
-      .select('playlist_songs!inner(*)', { count: 'exact', head: true })
-      .eq('playlist_songs.member_id', user.value.id);
+      .from('playlist_songs')
+      .select('*', { count: 'exact', head: true })
+      .eq('member_id', user.value.id)
+      .eq('is_in_setlist', true);
     
     selectedCount.value = selectedSongsCount || 0;
   
-    // Fetch count of active setlists
-    const { count: activeSetlistsCount } = await supabase
-      .from('setlists')
+    // Fetch count of all setlist songs
+    const { count: totalSetlistCount } = await supabase
+      .from('playlist_songs')
       .select('*', { count: 'exact', head: true })
-      .eq('status', 'final');
+      .eq('is_in_setlist', true);
     
-    setlistCount.value = activeSetlistsCount || 0;
+    setlistCount.value = totalSetlistCount || 0;
   });
   </script>

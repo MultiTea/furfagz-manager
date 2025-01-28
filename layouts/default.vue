@@ -28,69 +28,72 @@
                   All Playlists
                 </NuxtLink>
   
-                <!-- Admin Setlists - Only visible to admins -->
+                <!-- Setlist - Available to all users -->
                 <NuxtLink 
-                  v-if="bandMember?.role === 'admin'"
-                  to="/admin/setlists" 
-                  class="nav-link"
-                  :class="{ 'active-link': route.path.startsWith('/admin/setlists') }"
-                >
-                  Manage Setlists
-                </NuxtLink>
-  
-                <!-- View Setlists - Available to regular members -->
-                <NuxtLink 
-                  v-else
                   to="/setlists" 
                   class="nav-link"
                   :class="{ 'active-link': route.path === '/setlists' }"
                 >
-                  View Setlists
+                  {{ bandMember?.role === 'admin' ? 'Manage Setlist' : 'View Setlist' }}
                 </NuxtLink>
               </div>
             </div>
   
-          <!-- Right side - User menu -->
-          <div v-if="user" class="flex items-center gap-4">
-            <div class="flex items-center">
-    <div class="w-8 h-8 rounded-full overflow-hidden">
-      <img
-        v-if="bandMember?.avatar_url"
-        :src="bandMember.avatar_url"
-        :alt="bandMember?.username"
-        class="w-full h-full object-cover"
-      />
-      <div
-        v-else
-        class="w-full h-full bg-gray-200 flex items-center justify-center"
-      >
-        <span class="text-sm text-gray-500">
-          {{ bandMember?.username?.[0]?.toUpperCase() }}
-        </span>
-      </div>
-    </div>
-    <span class="ml-2 text-sm text-gray-500">
-      {{ bandMember?.username || user.email }}
-    </span>
-  </div>
-  <!-- Your existing logout button remains here -->
-  <button 
-    @click="handleLogout" 
-    class="text-sm text-gray-500 hover:text-gray-700"
-  >
-    Logout
-  </button>
-</div>
+            <!-- Right side - User menu -->
+            <div v-if="user" class="flex items-center gap-4">
+              <!-- User Profile Dropdown -->
+              <div class="relative">
+                <div class="flex items-center cursor-pointer" @click="isMenuOpen = !isMenuOpen">
+                  <div class="w-8 h-8 rounded-full overflow-hidden">
+                    <img
+                      v-if="bandMember?.avatar_url"
+                      :src="bandMember.avatar_url"
+                      :alt="bandMember?.username"
+                      class="w-full h-full object-cover"
+                    />
+                    <div
+                      v-else
+                      class="w-full h-full bg-gray-200 flex items-center justify-center"
+                    >
+                      <span class="text-sm text-gray-500">
+                        {{ bandMember?.username?.[0]?.toUpperCase() }}
+                      </span>
+                    </div>
+                  </div>
+                  <span class="ml-2 text-sm text-gray-500">
+                    {{ bandMember?.username || user.email }}
+                  </span>
+                </div>
+  
+                <!-- Dropdown Menu -->
+                <div v-if="isMenuOpen" 
+                     class="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  <NuxtLink 
+                    to="/profile" 
+                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    @click="isMenuOpen = false"
+                  >
+                    Edit Profile
+                  </NuxtLink>
+                  <button 
+                    @click="handleLogout" 
+                    class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-    </nav>
-
-    <!-- Main Content Area -->
-    <main>
-      <slot />
-    </main>
-  </div>
-</template>
+      </nav>
+  
+      <!-- Main Content Area -->
+      <main>
+        <slot />
+      </main>
+    </div>
+  </template>
   
   <script setup lang="ts">
   import { storeToRefs } from 'pinia';
@@ -103,6 +106,9 @@
   const user = useSupabaseUser();
   const supabase = useSupabaseClient<Database>();
   const router = useRouter();
+  
+  // State for dropdown menu
+  const isMenuOpen = ref(false);
   
   // Store band member information including role
   const bandMember = ref<Database['public']['Tables']['band_members']['Row'] | null>(null);
@@ -125,12 +131,23 @@
   // Handle user logout
   const handleLogout = async () => {
     try {
+      isMenuOpen.value = false;
       await supabase.auth.signOut();
       router.push('/login');
     } catch (error) {
       console.error('Error during logout:', error);
     }
   };
+  
+  // Close dropdown when clicking outside
+  onMounted(() => {
+    document.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.relative')) {
+        isMenuOpen.value = false;
+      }
+    });
+  });
   </script>
   
   <style scoped>

@@ -2,18 +2,14 @@
 import { defineStore } from 'pinia';
 import type { Database } from '~/types/supabase';
 
-// These type definitions help us ensure type safety throughout our application
 type PlaylistSong = Database['public']['Tables']['playlist_songs']['Row'];
-type InsertPlaylistSong = Database['public']['Tables']['playlist_songs']['Insert'];
-type UpdatePlaylistSong = Database['public']['Tables']['playlist_songs']['Update'];
 
 export const usePlaylistStore = defineStore('playlist', () => {
-  // State management using refs for reactivity
   const songs = ref<PlaylistSong[]>([]);
+  const setlistSongs = ref<PlaylistSong[]>([]);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
-  // Get Supabase client and current user
   const supabase = useSupabaseClient<Database>();
   const user = useSupabaseUser();
 
@@ -43,6 +39,78 @@ export const usePlaylistStore = defineStore('playlist', () => {
     }
   }
 
+  // Fetch setlist songs
+  async function fetchSetlistSongs() {
+    isLoading.value = true;
+    error.value = null;
+
+    try {
+      const { data, error: supabaseError } = await supabase
+        .from('playlist_songs')
+        .select('*')
+        .eq('is_in_setlist', true)
+        .order('setlist_order', { ascending: true });
+
+      if (supabaseError) throw supabaseError;
+      setlistSongs.value = data || [];
+    } catch (e: any) {
+      error.value = e.message;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Toggle song in setlist
+  async function toggleSongInSetlist(songId: string, isInSetlist: boolean) {
+    try {
+      const maxOrderQuery = await supabase
+        .from('playlist_songs')
+        .select('setlist_order')
+        .eq('is_in_setlist', true)
+        .order('setlist_order', { ascending: false })
+        .limit(1)
+        .single();
+
+      const nextOrder = maxOrderQuery.data?.setlist_order 
+        ? maxOrderQuery.data.setlist_order + 1 
+        : 1;
+
+      const { error: updateError } = await supabase
+        .from('playlist_songs')
+        .update({ 
+          is_in_setlist: isInSetlist,
+          setlist_order: isInSetlist ? nextOrder : null 
+        })
+        .eq('id', songId);
+
+      if (updateError) throw updateError;
+    } catch (e: any) {
+      error.value = e.message;
+      throw e;
+    }
+  }
+
+  // Update setlist order
+  async function updateSetlistOrder(songs: PlaylistSong[]) {
+    try {
+      // Update each song's order in a transaction or batch
+      for (let i = 0; i < songs.length; i++) {
+        const { error: updateError } = await supabase
+          .from('playlist_songs')
+          .update({ setlist_order: i + 1 })
+          .eq('id', songs[i].id);
+
+        if (updateError) throw updateError;
+      }
+      
+      // Update local state
+      setlistSongs.value = songs;
+    } catch (e: any) {
+      error.value = e.message;
+      throw e;
+    }
+  }
+
   // Add a new song to the user's playlist
   async function addSong(songData: {
     artist: string;
@@ -59,8 +127,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
     error.value = null;
 
     try {
-      // Prepare the song data according to our database schema
-      const insertData: InsertPlaylistSong = {
+      const insertData = {
         member_id: user.value.id,
         artist: songData.artist,
         title: songData.title,
@@ -90,74 +157,15 @@ export const usePlaylistStore = defineStore('playlist', () => {
     }
   }
 
-  // Update an existing song in the playlist
-  async function updateSong(id: string, updates: UpdatePlaylistSong) {
-    if (!user.value) throw new Error('User must be authenticated to update songs');
-
-    isLoading.value = true;
-    error.value = null;
-
-    try {
-      const { data, error: supabaseError } = await supabase
-        .from('playlist_songs')
-        .update(updates)
-        .eq('id', id)
-        .eq('member_id', user.value.id) // Ensure user owns the song
-        .select()
-        .single();
-
-      if (supabaseError) throw supabaseError;
-      
-      if (data) {
-        // Update the song in our local state
-        const index = songs.value.findIndex(song => song.id === id);
-        if (index !== -1) {
-          songs.value[index] = data;
-        }
-      }
-      return data;
-    } catch (e: any) {
-      error.value = e.message;
-      throw e;
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  // Delete a song from the playlist
-  async function deleteSong(id: string) {
-    if (!user.value) throw new Error('User must be authenticated to delete songs');
-
-    isLoading.value = true;
-    error.value = null;
-
-    try {
-      const { error: supabaseError } = await supabase
-        .from('playlist_songs')
-        .delete()
-        .eq('id', id)
-        .eq('member_id', user.value.id); // Ensure user owns the song
-
-      if (supabaseError) throw supabaseError;
-      
-      // Remove the song from our local state
-      songs.value = songs.value.filter(song => song.id !== id);
-    } catch (e: any) {
-      error.value = e.message;
-      throw e;
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  // Return the store's public interface
   return {
     songs,
+    setlistSongs,
     isLoading,
     error,
     fetchMyPlaylist,
-    addSong,
-    updateSong,
-    deleteSong
+    fetchSetlistSongs,
+    toggleSongInSetlist,
+    updateSetlistOrder,
+    addSong
   };
 });
