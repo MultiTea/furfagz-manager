@@ -17,4 +17,15 @@ export default defineNuxtConfig({
     exposeConfig: false,
     viewer: true
   },
-})
+  // Runtime config
+  runtimeConfig: {
+    // Private keys are only available on the server
+    spotifyClientSecret: process.env.NUXT_SPOTIFY_CLIENT_SECRET,
+    
+    // Public keys that are available on both client and server
+    public: {
+      spotifyClientId: process.env.NUXT_SPOTIFY_CLIENT_ID,
+      youtubeApiKey: process.env.NUXT_YOUTUBE_API_KEY,
+      spotifyAccessToken: process.env.NUXT_SPOTIFY_ACCESS_TOKEN
+    }
+  },})
