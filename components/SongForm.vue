@@ -1,71 +1,94 @@
 // components/SongForm.vue
 <template>
   <div>
-    <div v-if="error" class="mb-4 p-4 bg-red-50 border border-red-400 rounded text-red-700">
+    <div v-if="error" class="mb-6 p-4 bg-red-50 rounded-lg text-red-700 text-sm">
       {{ error }}
     </div>
     
-    <form @submit.prevent="handleSubmit" class="space-y-4">
-      <div>
-        <label for="link" class="block text-sm font-medium text-gray-700">
-          Link (YouTube/Spotify)
-          <span class="text-gray-500 text-xs ml-1">- Paste a link to auto-fill details</span>
-        </label>
+    <form @submit.prevent="handleSubmit" class="space-y-6">
+      <!-- Link Input -->
+      <div class="relative">
         <input
           id="link"
           v-model="songData.link"
           type="url"
           :disabled="isLoading"
-          class="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          placeholder=" "
+          class="peer w-full pt-6 pb-2 px-0 bg-transparent border-0 border-b-2 border-gray-200 focus:ring-0 focus:border-indigo-500 transition-colors placeholder-transparent"
         />
-        <span v-if="errors.link" class="text-sm text-red-600">{{ errors.link }}</span>
+        <label 
+          for="link" 
+          class="absolute left-0 top-5 text-gray-500 text-sm -translate-y-3 scale-75 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-3 peer-focus:scale-75 transition-all duration-200"
+        >
+          Link (YouTube/Spotify)
+        </label>
+        <span class="mt-1 text-xs text-gray-500">Paste a link to auto-fill details</span>
+        <span v-if="errors.link" class="mt-1 text-xs text-red-600">{{ errors.link }}</span>
       </div>
 
       <!-- Thumbnail Preview -->
       <div v-if="songData.thumbnail_url" class="flex items-center space-x-4">
-        <img 
-          :src="songData.thumbnail_url" 
-          :alt="songData.title" 
-          class="h-20 w-20 object-cover rounded-lg shadow-sm"
-        />
-        <button 
-          type="button" 
-          @click="removeThumbnail"
-          class="text-sm text-red-600 hover:text-red-700"
-        >
-          Remove Thumbnail
-        </button>
+        <div class="relative group">
+          <img 
+            :src="songData.thumbnail_url" 
+            :alt="songData.title" 
+            class="h-20 w-20 object-cover rounded-lg"
+          />
+          <button 
+            type="button" 
+            @click="removeThumbnail"
+            class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white opacity-0 group-hover:opacity-100 rounded-lg transition-opacity duration-200"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
-      <div>
-        <label for="artist" class="block text-sm font-medium text-gray-700">Artist</label>
+      <!-- Artist Input -->
+      <div class="relative">
         <input
           id="artist"
           v-model="songData.artist"
           type="text"
           required
           :disabled="isLoading"
-          class="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          placeholder=" "
+          class="peer w-full pt-6 pb-2 px-0 bg-transparent border-0 border-b-2 border-gray-200 focus:ring-0 focus:border-indigo-500 transition-colors placeholder-transparent"
         />
-        <span v-if="errors.artist" class="text-sm text-red-600">{{ errors.artist }}</span>
+        <label 
+          for="artist" 
+          class="absolute left-0 top-5 text-gray-500 text-sm -translate-y-3 scale-75 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-3 peer-focus:scale-75 transition-all duration-200"
+        >
+          Artist
+        </label>
+        <span v-if="errors.artist" class="mt-1 text-xs text-red-600">{{ errors.artist }}</span>
       </div>
 
-      <div>
-        <label for="title" class="block text-sm font-medium text-gray-700">Song Title</label>
+      <!-- Title Input -->
+      <div class="relative">
         <input
           id="title"
           v-model="songData.title"
           type="text"
           required
           :disabled="isLoading"
-          class="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          placeholder=" "
+          class="peer w-full pt-6 pb-2 px-0 bg-transparent border-0 border-b-2 border-gray-200 focus:ring-0 focus:border-indigo-500 transition-colors placeholder-transparent"
         />
-        <span v-if="errors.title" class="text-sm text-red-600">{{ errors.title }}</span>
+        <label 
+          for="title" 
+          class="absolute left-0 top-5 text-gray-500 text-sm -translate-y-3 scale-75 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-3 peer-focus:scale-75 transition-all duration-200"
+        >
+          Song Title
+        </label>
+        <span v-if="errors.title" class="mt-1 text-xs text-red-600">{{ errors.title }}</span>
       </div>
 
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label for="minutes" class="block text-sm font-medium text-gray-700">Minutes</label>
+      <!-- Duration Inputs -->
+      <div class="grid grid-cols-2 gap-6">
+        <div class="relative">
           <input
             id="minutes"
             v-model="minutes"
@@ -73,11 +96,17 @@
             min="0"
             required
             :disabled="isLoading"
-            class="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            placeholder=" "
+            class="peer w-full pt-6 pb-2 px-0 bg-transparent border-0 border-b-2 border-gray-200 focus:ring-0 focus:border-indigo-500 transition-colors placeholder-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
+          <label 
+            for="minutes" 
+            class="absolute left-0 top-5 text-gray-500 text-sm -translate-y-3 scale-75 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-3 peer-focus:scale-75 transition-all duration-200"
+          >
+            Minutes
+          </label>
         </div>
-        <div>
-          <label for="seconds" class="block text-sm font-medium text-gray-700">Seconds</label>
+        <div class="relative">
           <input
             id="seconds"
             v-model="seconds"
@@ -86,28 +115,50 @@
             max="59"
             required
             :disabled="isLoading"
-            class="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            placeholder=" "
+            class="peer w-full pt-6 pb-2 px-0 bg-transparent border-0 border-b-2 border-gray-200 focus:ring-0 focus:border-indigo-500 transition-colors placeholder-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
           />
+          <label 
+            for="seconds" 
+            class="absolute left-0 top-5 text-gray-500 text-sm -translate-y-3 scale-75 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-3 peer-focus:scale-75 transition-all duration-200"
+          >
+            Seconds
+          </label>
         </div>
       </div>
 
-      <div>
-        <label for="notes" class="block text-sm font-medium text-gray-700">Notes</label>
+      <!-- Notes Input -->
+      <div class="relative">
         <textarea
           id="notes"
           v-model="songData.notes"
           rows="3"
           :disabled="isLoading"
-          class="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          placeholder=" "
+          class="peer w-full pt-6 px-0 bg-transparent border-0 border-b-2 border-gray-200 focus:ring-0 focus:border-indigo-500 transition-colors placeholder-transparent resize-none"
         />
+        <label 
+          for="notes" 
+          class="absolute left-0 top-5 text-gray-500 text-sm -translate-y-3 scale-75 peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-3 peer-focus:scale-75 transition-all duration-200"
+        >
+          Notes (optional)
+        </label>
       </div>
 
+      <!-- Submit Button -->
       <button
         type="submit"
         :disabled="isLoading"
-        class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+        class="w-full py-3 px-4 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white text-sm font-medium rounded-lg hover:from-indigo-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md"
       >
-        {{ isLoading ? 'Adding...' : 'Add Song' }}
+        <span v-if="isLoading" class="flex items-center justify-center">
+          <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Adding Song...
+        </span>
+        <span v-else>Add Song</span>
       </button>
     </form>
   </div>
@@ -126,7 +177,7 @@ const { isLoading, error, withLoading } = useLoadingState();
 const { errors, validateForm } = useFormValidation();
 
 const youtubeService = new YouTubeService(config.public.youtubeApiKey);
-const spotifyService = new SpotifyService(config.public.spotifyAccessToken);
+const spotifyService = new SpotifyService()
 
 const emit = defineEmits<{
   (e: 'added'): void
@@ -165,12 +216,11 @@ watch(() => songData.value.link, async (newLink: string) => {
         updateSongDetails(details);
       }
     } else if (newLink.includes('spotify.com')) {
-      const trackId = LinkParser.getSpotifyTrackId(newLink);
+      const trackId = LinkParser.getSpotifyTrackId(newLink)
       if (trackId) {
-        const details = await spotifyService.getTrackDetails(trackId);
-        updateSongDetails(details);
-      }
-    }
+        const details = await spotifyService.getTrackDetails(trackId)
+        updateSongDetails(details)
+      } }
   } catch (e: unknown) {
     if (e instanceof Error) {
       error.value = e.message;

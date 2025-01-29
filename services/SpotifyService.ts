@@ -1,71 +1,114 @@
 // services/SpotifyService.ts
-import type { MediaDetails, SpotifyApiResponse } from '~/types/services';
-import { MediaServiceError } from '~/types/services';
+import type { MediaDetails, SpotifyApiResponse } from '~/types/services'
+import { MediaServiceError } from '~/types/services'
 
 export class SpotifyService {
-  private accessToken: string;
+  private tokenRefreshPromise: Promise<string | null> | null = null;
 
-  constructor(accessToken: string) {
-    this.accessToken = accessToken;
+  constructor() {
+    // No arguments needed anymore since we're using the composable
   }
 
   async getTrackDetails(trackId: string): Promise<MediaDetails> {
     try {
+      const token = await this.getValidToken()
+      if (!token) {
+        throw new MediaServiceError(
+          'No valid Spotify access token available',
+          401,
+          'spotify/tracks'
+        )
+      }
+
       const response = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
         headers: {
-          'Authorization': 'Bearer ' + this.accessToken
+          'Authorization': `Bearer ${token}`
         }
-      });
+      })
+
+      if (response.status === 401) {
+        // Token might have expired during the request, try once more with a fresh token
+        const newToken = await this.getValidToken(true)
+        if (!newToken) {
+          throw new MediaServiceError(
+            'Failed to refresh Spotify token',
+            401,
+            'spotify/tracks'
+          )
+        }
+
+        const retryResponse = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
+          headers: {
+            'Authorization': `Bearer ${newToken}`
+          }
+        })
+
+        if (!retryResponse.ok) {
+          throw new MediaServiceError(
+            `Spotify API error: ${retryResponse.statusText}`,
+            retryResponse.status,
+            'spotify/tracks'
+          )
+        }
+
+        const data = await retryResponse.json() as SpotifyApiResponse
+        return this.parseTrackData(data)
+      }
 
       if (!response.ok) {
         throw new MediaServiceError(
           `Spotify API error: ${response.statusText}`,
           response.status,
           'spotify/tracks'
-        );
+        )
       }
-      
-      const data = await response.json() as SpotifyApiResponse;
-      const duration = this.parseDuration(data.duration_ms);
-      
-      return {
-        title: data.name,
-        artist: data.artists[0].name,
-        thumbnailUrl: data.album.images[1]?.url || data.album.images[0]?.url || '',
-        duration
-      };
-    } catch (error: unknown) {
+
+      const data = await response.json() as SpotifyApiResponse
+      return this.parseTrackData(data)
+    } catch (error) {
       if (error instanceof MediaServiceError) {
-        throw error;
+        throw error
       }
       throw new MediaServiceError(
         error instanceof Error ? error.message : 'Unknown error occurred',
         500,
         'spotify/tracks'
-      );
+      )
+    }
+  }
+
+  private async getValidToken(forceRefresh = false): Promise<string | null> {
+    // If we're already refreshing the token, wait for that to complete
+    if (this.tokenRefreshPromise) {
+      return await this.tokenRefreshPromise
+    }
+
+    const { getValidToken } = useSpotifyAuth()
+    
+    try {
+      this.tokenRefreshPromise = getValidToken()
+      return await this.tokenRefreshPromise
+    } finally {
+      this.tokenRefreshPromise = null
+    }
+  }
+
+  private parseTrackData(data: SpotifyApiResponse): MediaDetails {
+    const duration = this.parseDuration(data.duration_ms)
+    
+    return {
+      title: data.name,
+      artist: data.artists[0].name,
+      thumbnailUrl: data.album.images[1]?.url || data.album.images[0]?.url || '',
+      duration
     }
   }
 
   private parseDuration(durationMs: number): { minutes: number, seconds: number } {
-    const totalSeconds = Math.floor(durationMs / 1000);
+    const totalSeconds = Math.floor(durationMs / 1000)
     return {
       minutes: Math.floor(totalSeconds / 60),
       seconds: totalSeconds % 60
-    };
-  }
-}
-
-// services/LinkParser.ts
-export class LinkParser {
-  static getYouTubeVideoId(url: string): string | null {
-    const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[7].length === 11) ? match[7] : null;
-  }
-
-  static getSpotifyTrackId(url: string): string | null {
-    const regExp = /spotify\.com\/(?:intl-[a-z]+\/)?track\/([a-zA-Z0-9]+)/;
-    const match = url.match(regExp);
-    return match ? match[1] : null;
+    }
   }
 }
