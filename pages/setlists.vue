@@ -18,7 +18,7 @@
       <div v-else>
         <!-- Regular list when not admin -->
         <template v-if="!isAdmin">
-          <div class="mt-6 space-y-2">
+          <div class="mt-6 space-y-4">
             <SetlistSongItem
               v-for="(song, index) in setlistSongs"
               :key="song.id"
@@ -32,44 +32,69 @@
 
         <!-- Draggable list for admin -->
         <template v-else>
-          <TransitionGroup 
-            tag="div" 
-            name="list" 
-            class="mt-6 space-y-2"
-            @dragstart="dragStart"
-            @dragend="dragEnd"
-            @dragover="dragOver"
-            @dragenter="dragEnter"
-            @dragleave="dragLeave"
-            @drop="drop"
-          >
-            <div
-              v-for="(song, index) in setlistSongs"
-              :key="song.id"
-              class="relative"
-              draggable="true"
-              :class="{
-                'opacity-50': draggedItem === index,
-                'border-indigo-500': dropTarget === index && draggedItem !== index
-              }"
-            >
-              <!-- Drop indicator above -->
+          <div class="mt-6">
+            <!-- List items -->
+            <div>
+              <!-- First drop zone -->
               <div
-                v-if="draggedItem !== null && draggedItem !== index && dropTarget === index"
-                class="absolute w-full h-2 -top-2 z-10"
+                class="interactive-drop-zone"
+                :data-dragging="isDragging"
+                :class="[
+                  dropTarget === 0 ? 'bg-indigo-50' : '',
+                  isDragging ? 'h-8' : 'h-2'
+                ]"
+                @dragover.prevent="dragOver($event, 0)"
+                @dragenter.prevent="dragEnter(0)"
+                                  @dragleave.prevent="dragLeave($event, 0)"
+                @drop.prevent="drop($event, 0)"
               >
-                <div class="h-1 w-full bg-indigo-500 rounded-full transform translate-y-1/2" />
+                <div 
+                  v-show="dropTarget === 0" 
+                  class="h-0.5 w-full bg-indigo-500 transform translate-y-4"
+                />
               </div>
 
-              <SetlistSongItem
-                :song="song"
-                :position="index + 1"
-                :is-admin="true"
-                :added-by="getMemberName(song.member_id)"
-                @remove="removeFromSetlist(song)"
-              />
+              <!-- Items with drop zones -->
+              <div
+                v-for="(song, index) in setlistSongs"
+                :key="song.id"
+              >
+                <!-- Draggable item -->
+                <div
+                  draggable="true"
+                  @dragstart="dragStart($event, index)"
+                  @dragend="dragEnd"
+                  :class="{ 'opacity-50': draggedItem === index }"
+                >
+                  <SetlistSongItem
+                    :song="song"
+                    :position="index + 1"
+                    :is-admin="true"
+                    :added-by="getMemberName(song.member_id)"
+                    @remove="removeFromSetlist(song)"
+                  />
+                </div>
+
+                <!-- Drop zone after each item -->
+                <div
+                  class="interactive-drop-zone transition-all duration-200"
+                  :class="[
+                    dropTarget === index + 1 ? 'bg-indigo-50' : '',
+                    isDragging ? 'h-8' : 'h-2'
+                  ]"
+                  @dragover.prevent="dragOver($event, index + 1)"
+                  @dragenter.prevent="dragEnter(index + 1)"
+                  @dragleave.prevent="dragLeave($event, index + 1)"
+                  @drop.prevent="drop($event, index + 1)"
+                >
+                  <div 
+                    v-show="dropTarget === index + 1" 
+                    class="h-0.5 w-full bg-indigo-500 transform translate-y-4"
+                  />
+                </div>
+              </div>
             </div>
-          </TransitionGroup>
+          </div>
         </template>
 
         <!-- Total Duration -->
@@ -81,6 +106,7 @@
   </div>
 </template>
 
+
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
 import { usePlaylistStore } from '~/stores/playlist';
@@ -88,12 +114,12 @@ import { useMembersStore } from '~/stores/members';
 import type { Database } from '~/types/supabase';
 import { useLoadingState } from '~/composables/useLoadingState';
 import { useSupabaseAuth } from '~/composables/useSupabaseAuth';
-import { useDragAndDrop } from '~/composables/useDragAndDrop';
 import { useFormatDuration } from '~/composables/useFormatDuration';
 import SetlistSongItem from '~/components/SetlistSongItem.vue';
 import { LoadingState, ErrorState, EmptyState, BaseCard } from '~/components/ui';
 
 type PlaylistSong = Database['public']['Tables']['playlist_songs']['Row'];
+type DropPosition = 'top' | 'bottom' | null;
 
 // Composables
 const { isLoading, error, withLoading } = useLoadingState();
@@ -109,6 +135,12 @@ const { members } = storeToRefs(membersStore);
 // Admin status
 const isAdmin = ref(false);
 
+// Drag and drop state
+const isDragging = ref(false);
+const draggedItem = ref<number | null>(null);
+const dropTarget = ref<number | null>(null);
+const dropPosition = ref<DropPosition>(null);
+
 // Calculate total duration
 const totalDuration = computed(() => {
   const durations = setlistSongs.value.map(song => song.duration);
@@ -121,30 +153,81 @@ function getMemberName(memberId: string) {
   return member?.username || 'Unknown Member';
 }
 
-// Drag and drop functionality
-const {
-  draggedItem,
-  dropTarget,
-  dragStart,
-  dragEnd,
-  dragOver,
-  dragEnter,
-  dragLeave,
-  drop
-} = useDragAndDrop(setlistSongs, async (items) => {
+function getDropPosition(event: DragEvent): DropPosition {
+  const target = event.currentTarget as HTMLElement;
+  const rect = target.getBoundingClientRect();
+  const mouseY = event.clientY;
+  const midPoint = rect.top + rect.height / 2;
+  return mouseY < midPoint ? 'top' : 'bottom';
+}
+
+// Drag and drop handlers
+function dragStart(event: DragEvent, index: number) {
+  isDragging.value = true;
+  draggedItem.value = index;
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move';
+  }
+}
+
+function dragEnd() {
+  isDragging.value = false;
+  draggedItem.value = null;
+  dropTarget.value = null;
+  dropPosition.value = null;
+}
+
+function dragOver(event: DragEvent, index: number) {
+  if (draggedItem.value === null || draggedItem.value === index) return;
+  event.preventDefault();
+  event.dataTransfer!.dropEffect = 'move';
+}
+
+function handleDragOver(event: DragEvent, index: number) {
+  dragOver(event, index);
+  dropPosition.value = getDropPosition(event);
+}
+
+function dragEnter(index: number) {
+  if (draggedItem.value === null || draggedItem.value === index) return;
+  dropTarget.value = index;
+}
+
+function dragLeave(index: number) {
+  if (dropTarget.value === index) {
+    dropTarget.value = null;
+    dropPosition.value = null;
+  }
+}
+
+async function handleDrop(event: DragEvent, dropIndex: number) {
+  const finalPosition = dropPosition.value;
+  await drop(event, dropIndex);
+  dropPosition.value = finalPosition;
+}
+
+async function drop(event: DragEvent, dropIndex: number) {
+  event.preventDefault();
+  
+  if (draggedItem.value === null || draggedItem.value === dropIndex) return;
+  
   try {
-    const updatedItems = items.map((item, index) => ({
-      ...item,
-      setlist_order: index + 1
-    }));
+    const newSongs = [...setlistSongs.value];
+    const [removed] = newSongs.splice(draggedItem.value, 1);
+    newSongs.splice(dropIndex, 0, removed);
     
-    await playlistStore.updateSetlistOrder(updatedItems);
+    // Update the order in the store
+    await playlistStore.updateSetlistOrder(newSongs);
   } catch (e: unknown) {
     if (e instanceof Error) {
       error.value = e.message;
     }
+  } finally {
+    draggedItem.value = null;
+    dropTarget.value = null;
+    isDragging.value = false;
   }
-});
+}
 
 // Remove song from setlist
 async function removeFromSetlist(song: PlaylistSong) {
@@ -184,20 +267,34 @@ onMounted(async () => {
 });
 </script>
 
-<style>
-.list-move,
-.list-enter-active,
-.list-leave-active {
-  transition: all 0.5s ease;
+<style scoped>
+.interactive-drop-zone {
+  position: relative;
+  z-index: 10;
+  margin: 0;
+  pointer-events: all;
+  min-height: 0.5rem;
+  transition: all 0.2s ease;
 }
 
-.list-enter-from,
-.list-leave-to {
-  opacity: 0;
-  transform: translateX(30px);
+.interactive-drop-zone:hover {
+  background-color: rgba(79, 70, 229, 0.03);
 }
 
-.list-leave-active {
+/* Increase the hit area using pseudo-elements */
+.interactive-drop-zone::before {
+  content: '';
   position: absolute;
+  top: -8px;
+  left: 0;
+  right: 0;
+  bottom: -8px;
+  z-index: 1;
+}
+
+/* Maintain drop target state during transitions */
+.interactive-drop-zone[data-dragging="true"] {
+  background-color: rgba(79, 70, 229, 0.05);
+  transition-duration: 0s;
 }
 </style>
