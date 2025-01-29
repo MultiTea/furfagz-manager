@@ -61,7 +61,7 @@
               v-model="editForm.notes"
               rows="3"
               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-            ></textarea>
+            />
           </div>
 
           <div class="flex justify-end space-x-3">
@@ -73,6 +73,7 @@
             <BaseButton
               type="submit"
               text="Save Changes"
+              :is-loading="isLoading"
             />
           </div>
         </form>
@@ -85,7 +86,9 @@
 import { storeToRefs } from 'pinia';
 import { usePlaylistStore } from '~/stores/playlist';
 import type { Database } from '~/types/supabase';
-import { useFormatDuration } from '~/composables/useFormatDuration';
+import { useLoadingState } from '~/composables/useLoadingState';
+import { useFormValidation } from '~/composables/useFormValidation';
+import { useSupabaseAuth } from '~/composables/useSupabaseAuth';
 import SongForm from '~/components/SongForm.vue';
 import SongListItem from '~/components/SongListItem.vue';
 import {
@@ -93,19 +96,20 @@ import {
   BaseCard,
   BaseInput,
   LoadingState,
-  ErrorState,
   EmptyState,
   Modal
 } from '~/components/ui';
 
 type PlaylistSong = Database['public']['Tables']['playlist_songs']['Row'];
 
+// Composables
+const { isLoading, error, withLoading } = useLoadingState();
+const { validateForm, errors } = useFormValidation();
+const { checkAuthAndRedirect } = useSupabaseAuth();
+
 // Store
 const store = usePlaylistStore();
-const { songs, isLoading } = storeToRefs(store);
-
-// Composables
-const { formatDuration } = useFormatDuration();
+const { songs } = storeToRefs(store);
 
 // Edit modal state
 const showEditModal = ref(false);
@@ -125,14 +129,26 @@ const editForm = ref<{
   thumbnail_url: null
 });
 
+// Validation rules
+const editValidationRules = {
+  title: [{ validate: (v: string) => !!v.trim(), message: 'Title is required' }],
+  artist: [{ validate: (v: string) => !!v.trim(), message: 'Artist is required' }],
+};
+
 // Lifecycle
-onMounted(() => {
-  store.fetchMyPlaylist();
+onMounted(async () => {
+  if (checkAuthAndRedirect()) {
+    await withLoading(async () => {
+      await store.fetchMyPlaylist();
+    });
+  }
 });
 
 // Methods
-const handleSongAdded = () => {
-  store.fetchMyPlaylist();
+const handleSongAdded = async () => {
+  await withLoading(async () => {
+    await store.fetchMyPlaylist();
+  });
 };
 
 const editSong = (song: PlaylistSong) => {
@@ -141,28 +157,43 @@ const editSong = (song: PlaylistSong) => {
 };
 
 const handleEditSubmit = async () => {
+  if (!validateForm(editForm.value, editValidationRules)) {
+    return;
+  }
+
   try {
-    await store.updateSong(editForm.value.id, {
-      title: editForm.value.title,
-      artist: editForm.value.artist,
-      link: editForm.value.link,
-      notes: editForm.value.notes,
-      thumbnail_url: editForm.value.thumbnail_url
+    await withLoading(async () => {
+      await store.updateSong(editForm.value.id, {
+        title: editForm.value.title,
+        artist: editForm.value.artist,
+        link: editForm.value.link,
+        notes: editForm.value.notes,
+        thumbnail_url: editForm.value.thumbnail_url
+      });
+      
+      showEditModal.value = false;
+      await store.fetchMyPlaylist();
     });
-    showEditModal.value = false;
-    store.fetchMyPlaylist();
-  } catch (e) {
-    console.error('Error updating song:', e);
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      error.value = e.message;
+    }
   }
 };
 
 const confirmDelete = async (song: PlaylistSong) => {
-  if (confirm(`Are you sure you want to remove "${song.title}" from your playlist?`)) {
-    try {
+  if (!confirm(`Are you sure you want to remove "${song.title}" from your playlist?`)) {
+    return;
+  }
+
+  try {
+    await withLoading(async () => {
       await store.deleteSong(song.id);
-      store.fetchMyPlaylist();
-    } catch (e) {
-      console.error('Error removing song:', e);
+      await store.fetchMyPlaylist();
+    });
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      error.value = e.message;
     }
   }
 };

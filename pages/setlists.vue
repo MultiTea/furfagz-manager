@@ -32,41 +32,42 @@
 
         <!-- Draggable list for admin -->
         <template v-else>
-          <TransitionGroup tag="div" name="list" class="mt-6 space-y-2">
+          <TransitionGroup 
+            tag="div" 
+            name="list" 
+            class="mt-6 space-y-2"
+            @dragstart="dragStart"
+            @dragend="dragEnd"
+            @dragover="dragOver"
+            @dragenter="dragEnter"
+            @dragleave="dragLeave"
+            @drop="drop"
+          >
             <div
               v-for="(song, index) in setlistSongs"
               :key="song.id"
               class="relative"
               draggable="true"
-              @dragstart="dragStart($event, index)"
-              @dragend="dragEnd"
-              @dragover.prevent="dragOver($event, index)"
-              @dragenter.prevent="dragEnter(index)"
-              @dragleave.prevent="dragLeave(index)"
-              @drop.prevent="drop($event, index)"
+              :class="{
+                'opacity-50': draggedItem === index,
+                'border-indigo-500': dropTarget === index && draggedItem !== index
+              }"
             >
               <!-- Drop indicator above -->
               <div
                 v-if="draggedItem !== null && draggedItem !== index && dropTarget === index"
                 class="absolute w-full h-2 -top-2 z-10"
               >
-                <div class="h-1 w-full bg-indigo-500 rounded-full transform translate-y-1/2"></div>
+                <div class="h-1 w-full bg-indigo-500 rounded-full transform translate-y-1/2" />
               </div>
 
-              <div
-                :class="{
-                  'opacity-50': draggedItem === index,
-                  'border-indigo-500': dropTarget === index && draggedItem !== index
-                }"
-              >
-                <SetlistSongItem
-                  :song="song"
-                  :position="index + 1"
-                  :is-admin="true"
-                  :added-by="getMemberName(song.member_id)"
-                  @remove="removeFromSetlist(song)"
-                />
-              </div>
+              <SetlistSongItem
+                :song="song"
+                :position="index + 1"
+                :is-admin="true"
+                :added-by="getMemberName(song.member_id)"
+                @remove="removeFromSetlist(song)"
+              />
             </div>
           </TransitionGroup>
         </template>
@@ -80,70 +81,38 @@
   </div>
 </template>
 
-
 <script setup lang="ts">
-import { LoadingState, ErrorState, EmptyState, BaseCard, BaseButton } from '~/components/ui';
-import SetlistSongItem from '~/components/SetlistSongItem.vue';
 import { storeToRefs } from 'pinia';
 import { usePlaylistStore } from '~/stores/playlist';
 import { useMembersStore } from '~/stores/members';
 import type { Database } from '~/types/supabase';
+import { useLoadingState } from '~/composables/useLoadingState';
+import { useSupabaseAuth } from '~/composables/useSupabaseAuth';
+import { useDragAndDrop } from '~/composables/useDragAndDrop';
+import { useFormatDuration } from '~/composables/useFormatDuration';
+import SetlistSongItem from '~/components/SetlistSongItem.vue';
+import { LoadingState, ErrorState, EmptyState, BaseCard } from '~/components/ui';
 
 type PlaylistSong = Database['public']['Tables']['playlist_songs']['Row'];
 
+// Composables
+const { isLoading, error, withLoading } = useLoadingState();
+const { checkAuthAndRedirect } = useSupabaseAuth();
+const { formatDuration, calculateTotalDuration } = useFormatDuration();
+
+// Stores
 const playlistStore = usePlaylistStore();
 const membersStore = useMembersStore();
-const { setlistSongs, isLoading, error } = storeToRefs(playlistStore);
+const { setlistSongs } = storeToRefs(playlistStore);
 const { members } = storeToRefs(membersStore);
 
-// Get current user role
-const supabase = useSupabaseClient<Database>();
-const user = useSupabaseUser();
+// Admin status
 const isAdmin = ref(false);
-
-// Drag and drop state
-const draggedItem = ref<number | null>(null);
-const dropTarget = ref<number | null>(null);
-
-// Check if current user is admin and load data
-onMounted(async () => {
-  if (user.value) {
-    const { data } = await supabase
-      .from('band_members')
-      .select('role')
-      .eq('id', user.value.id)
-      .single();
-    
-    isAdmin.value = data?.role === 'admin';
-  }
-  
-  await Promise.all([
-    playlistStore.fetchSetlistSongs(),
-    membersStore.fetchMembersWithPlaylists()
-  ]);
-});
-
-// Format duration from PostgreSQL interval to readable format
-function formatDuration(duration: string) {
-  const [minutes, seconds] = duration.split(':');
-  return `${minutes}:${seconds.padStart(2, '0')}`;
-}
 
 // Calculate total duration
 const totalDuration = computed(() => {
-  let totalMinutes = 0;
-  let totalSeconds = 0;
-
-  setlistSongs.value.forEach(song => {
-    const [minutes, seconds] = song.duration.split(':').map(Number);
-    totalMinutes += minutes;
-    totalSeconds += seconds;
-  });
-
-  totalMinutes += Math.floor(totalSeconds / 60);
-  totalSeconds = totalSeconds % 60;
-
-  return `${totalMinutes}:${totalSeconds.toString().padStart(2, '0')}`;
+  const durations = setlistSongs.value.map(song => song.duration);
+  return calculateTotalDuration(durations);
 });
 
 // Get member name by ID
@@ -152,76 +121,67 @@ function getMemberName(memberId: string) {
   return member?.username || 'Unknown Member';
 }
 
-// Drag and drop handlers
-function dragStart(event: DragEvent, index: number) {
-  if (event.dataTransfer) {
-    event.dataTransfer.effectAllowed = 'move';
-    draggedItem.value = index;
-  }
-}
-
-function dragEnd() {
-  draggedItem.value = null;
-  dropTarget.value = null;
-}
-
-function dragOver(event: DragEvent, index: number) {
-  if (draggedItem.value === null || draggedItem.value === index) return;
-  event.dataTransfer!.dropEffect = 'move';
-}
-
-function dragEnter(index: number) {
-  if (draggedItem.value === null || draggedItem.value === index) return;
-  dropTarget.value = index;
-}
-
-function dragLeave(index: number) {
-  if (dropTarget.value === index) {
-    dropTarget.value = null;
-  }
-}
-
-async function drop(event: DragEvent, dropIndex: number) {
-  event.stopPropagation();
-  
-  if (draggedItem.value === null || draggedItem.value === dropIndex) return;
-  
+// Drag and drop functionality
+const {
+  draggedItem,
+  dropTarget,
+  dragStart,
+  dragEnd,
+  dragOver,
+  dragEnter,
+  dragLeave,
+  drop
+} = useDragAndDrop(setlistSongs, async (items) => {
   try {
-    const items = [...setlistSongs.value];
-    const [removed] = items.splice(draggedItem.value, 1);
-    items.splice(dropIndex, 0, removed);
-    
-    // Update the setlist_order values
     const updatedItems = items.map((item, index) => ({
       ...item,
       setlist_order: index + 1
     }));
     
     await playlistStore.updateSetlistOrder(updatedItems);
-  } catch (e) {
-    console.error('Error updating setlist order:', e);
-  } finally {
-    draggedItem.value = null;
-    dropTarget.value = null;
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      error.value = e.message;
+    }
   }
-}
+});
 
 // Remove song from setlist
 async function removeFromSetlist(song: PlaylistSong) {
   if (!isAdmin.value) return;
   
   try {
-    await playlistStore.toggleSongInSetlist(song.id, false);
-    await playlistStore.fetchSetlistSongs();
-  } catch (e) {
-    console.error('Error removing song from setlist:', e);
+    await withLoading(async () => {
+      await playlistStore.toggleSongInSetlist(song.id, false);
+      await playlistStore.fetchSetlistSongs();
+    });
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      error.value = e.message;
+    }
   }
 }
 
-// Show song notes in a dialog
-function showNotes(song: PlaylistSong) {
-  alert(song.notes);
-}
+// Initialize data
+onMounted(async () => {
+  if (checkAuthAndRedirect()) {
+    await withLoading(async () => {
+      await Promise.all([
+        playlistStore.fetchSetlistSongs(),
+        membersStore.fetchMembersWithPlaylists()
+      ]);
+      
+      // Check admin status
+      const { data } = await useSupabaseClient()
+        .from('band_members')
+        .select('role')
+        .eq('id', useSupabaseUser().value?.id)
+        .single();
+      
+      isAdmin.value = data?.role === 'admin';
+    });
+  }
+});
 </script>
 
 <style>

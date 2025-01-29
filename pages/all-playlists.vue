@@ -48,9 +48,8 @@
                 <PlaylistSongItem
                   :song="song"
                   :is-admin="isAdmin"
-                  :member-name="getMemberName(song.member_id)"
+                  :added-by="getMemberName(song.member_id)"
                   @setlist-toggle="handleSetlistToggle"
-                  @show-notes="showNotes"
                 />
               </li>
             </ul>
@@ -66,7 +65,8 @@ import { storeToRefs } from 'pinia';
 import { useMembersStore } from '~/stores/members';
 import { usePlaylistStore } from '~/stores/playlist';
 import type { Database } from '~/types/supabase';
-import { useFormatDuration } from '~/composables/useFormatDuration';
+import { useLoadingState } from '~/composables/useLoadingState';
+import { useSupabaseAuth } from '~/composables/useSupabaseAuth';
 import { useAdmin } from '~/composables/useAdmin';
 import MemberHeader from '~/components/MemberHeader.vue';
 import PlaylistSongItem from '~/components/PlaylistSongItem.vue';
@@ -75,14 +75,15 @@ import { LoadingState, ErrorState, EmptyState } from '~/components/ui';
 type BandMember = Database['public']['Tables']['band_members']['Row'];
 type PlaylistSong = Database['public']['Tables']['playlist_songs']['Row'];
 
-const membersStore = useMembersStore();
-const playlistStore = usePlaylistStore();
-const { members, isLoading, error } = storeToRefs(membersStore);
-
-// Admin status
+// Composables
+const { isLoading, error, withLoading } = useLoadingState();
+const { checkAuthAndRedirect } = useSupabaseAuth();
 const { isAdmin, checkAdminStatus } = useAdmin();
 
-const { formatDuration } = useFormatDuration();
+// Stores
+const membersStore = useMembersStore();
+const playlistStore = usePlaylistStore();
+const { members } = storeToRefs(membersStore);
 
 // Get member name by ID
 function getMemberName(memberId: string) {
@@ -98,19 +99,22 @@ async function handleSetlistToggle(song: PlaylistSong) {
     await playlistStore.toggleSongInSetlist(song.id, !song.is_in_setlist);
     // Refresh the members list to update the UI
     await membersStore.fetchMembersWithPlaylists();
-  } catch (e) {
-    console.error('Error toggling setlist status:', e);
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      error.value = e.message;
+    }
   }
 }
 
-// Show song notes
-function showNotes(song: PlaylistSong) {
-  alert(song.notes);
-}
-
-// Load initial data
+// Initialize data
 onMounted(async () => {
-  await checkAdminStatus();
-  await membersStore.fetchMembersWithPlaylists();
+  if (checkAuthAndRedirect()) {
+    await withLoading(async () => {
+      await Promise.all([
+        checkAdminStatus(),
+        membersStore.fetchMembersWithPlaylists()
+      ]);
+    });
+  }
 });
 </script>

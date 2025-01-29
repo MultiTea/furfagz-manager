@@ -1,65 +1,54 @@
-<!-- pages/index.vue -->
+// pages/index.vue
 <template>
   <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
     <div class="bg-white shadow sm:rounded-lg">
       <div class="px-4 py-5 sm:p-6">
         <h1 class="text-2xl font-bold text-gray-900 mb-4">Band Setlist Manager</h1>
         
-        <div v-if="user" class="space-y-6">
+        <!-- Authenticated User View -->
+        <div v-if="isAuthenticated" class="space-y-6">
           <p class="text-gray-600">
-            Welcome {{ bandMember?.username || user.email }}! 
+            Welcome {{ userDisplayName }}!
           </p>
           
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
             <!-- Personal Playlist Card -->
-            <div class="bg-indigo-50 p-6 rounded-lg">
-              <h2 class="text-lg font-medium text-indigo-700">My Playlist</h2>
-              <p class="text-indigo-600 mt-2">Manage your personal song suggestions for the band.</p>
-              <NuxtLink 
-                to="/my-playlist" 
-                class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
-              >
-                View My Playlist
-              </NuxtLink>
-            </div>
+            <DashboardCard 
+              title="My Playlist"
+              description="Manage your personal song suggestions for the band."
+              to="/my-playlist"
+              :color-scheme="cardColors.indigo"
+              button-text="View My Playlist"
+            />
             
             <!-- All Playlists Card -->
-            <div class="bg-emerald-50 p-6 rounded-lg">
-              <h2 class="text-lg font-medium text-emerald-700">All Playlists</h2>
-              <p class="text-emerald-600 mt-2">Explore song suggestions from all band members.</p>
-              <NuxtLink 
-                to="/all-playlists" 
-                class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700"
-              >
-                View All Playlists
-              </NuxtLink>
-            </div>
+            <DashboardCard
+              title="All Playlists"
+              description="Explore song suggestions from all band members."
+              to="/all-playlists"
+              :color-scheme="cardColors.emerald"
+              button-text="View All Playlists"
+            />
             
             <!-- Setlist Card -->
-            <div class="bg-purple-50 p-6 rounded-lg">
-              <h2 class="text-lg font-medium text-purple-700">
-                {{ bandMember?.role === 'admin' ? 'Manage Setlist' : 'View Setlist' }}
-              </h2>
-              <p class="text-purple-600 mt-2">
-                {{ bandMember?.role === 'admin' 
-                  ? 'Create and manage the band setlist.' 
-                  : 'Check out the current band setlist.' }}
-              </p>
-              <NuxtLink 
-                to="/setlists" 
-                class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700"
-              >
-                {{ bandMember?.role === 'admin' ? 'Manage Setlist' : 'View Setlist' }}
-              </NuxtLink>
-            </div>
+            <DashboardCard
+              :title="isAdmin ? 'Manage Setlist' : 'View Setlist'"
+              :description="isAdmin 
+                ? 'Create and manage the band setlist.' 
+                : 'Check out the current band setlist.'"
+              to="/setlists"
+              :color-scheme="cardColors.purple"
+              :button-text="isAdmin ? 'Manage Setlist' : 'View Setlist'"
+            />
           </div>
         </div>
 
+        <!-- Guest View -->
         <div v-else class="text-center">
-          <p class="text-gray-600">Please log in to access the band setlist manager.</p>
+          <p class="text-gray-600 mb-4">Please log in to access the band setlist manager.</p>
           <NuxtLink
             to="/login"
-            class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
             Log In
           </NuxtLink>
@@ -72,24 +61,64 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
 import type { Database } from '~/types/supabase';
+import { useLoadingState } from '~/composables/useLoadingState';
+import { useSupabaseAuth } from '~/composables/useSupabaseAuth';
+import { useAdmin } from '~/composables/useAdmin';
 
-// Authentication and user info
-const user = useSupabaseUser();
-const supabase = useSupabaseClient<Database>();
-const bandMember = ref<Database['public']['Tables']['band_members']['Row'] | null>(null);
+// Types
+type BandMember = Database['public']['Tables']['band_members']['Row'];
 
-// Fetch band member details when user is authenticated
-watch(user, async (newUser) => {
-  if (newUser) {
-    const { data } = await supabase
-      .from('band_members')
-      .select('*')
-      .eq('id', newUser.id)
-      .single();
-    
-    bandMember.value = data;
-  } else {
-    bandMember.value = null;
+// Card color schemes
+const cardColors = {
+  indigo: {
+    bg: 'bg-indigo-50',
+    text: 'text-indigo-700',
+    description: 'text-indigo-600',
+    button: 'bg-indigo-600',
+    hover: 'hover:bg-indigo-700'
+  },
+  emerald: {
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-700',
+    description: 'text-emerald-600',
+    button: 'bg-emerald-600',
+    hover: 'hover:bg-emerald-700'
+  },
+  purple: {
+    bg: 'bg-purple-50',
+    text: 'text-purple-700',
+    description: 'text-purple-600',
+    button: 'bg-purple-600',
+    hover: 'hover:bg-purple-700'
   }
-}, { immediate: true });
+} as const;
+
+// Composables
+const { isLoading, error, withLoading } = useLoadingState();
+const { isAuthenticated, user } = useSupabaseAuth();
+const { isAdmin, checkAdminStatus } = useAdmin();
+
+// Band member state
+const bandMember = ref<BandMember | null>(null);
+
+// Computed
+const userDisplayName = computed(() => {
+  return bandMember.value?.username || user.value?.email || '';
+});
+
+// Initialize admin status and fetch member details
+onMounted(async () => {
+  if (isAuthenticated.value) {
+    await withLoading(async () => {
+      await checkAdminStatus();
+      const { data } = await useSupabaseClient()
+        .from('band_members')
+        .select('*')
+        .eq('id', user.value?.id)
+        .single();
+      
+      bandMember.value = data;
+    });
+  }
+});
 </script>
