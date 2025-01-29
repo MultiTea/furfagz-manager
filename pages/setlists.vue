@@ -257,6 +257,7 @@ onMounted(async () => {
 
 .interactive-drop-zone:hover {
   background-color: rgba(79, 70, 229, 0.03);
+  
 }
 
 /* Increase the hit area using pseudo-elements */

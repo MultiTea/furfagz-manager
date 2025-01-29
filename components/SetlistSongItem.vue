@@ -1,7 +1,7 @@
 // components/SetlistSongItem.vue
 <template>
   <div 
-    class="bg-white rounded-lg shadow transition-all duration-200 hover:shadow-md"
+    class="bg-white rounded-lg shadow transition-all duration-200 hover:shadow-blue-500/50"
     :class="{
       'transform scale-[1.02] ring-2 ring-indigo-500 ring-opacity-50': isDropTarget,
       'cursor-move': isAdmin

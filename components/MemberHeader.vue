@@ -27,7 +27,7 @@
           <span class="ml-2 text-sm text-gray-500">({{ playlistCount }} songs)</span>
         </h3>
         <p class="mt-1 text-sm text-gray-500">
-          {{ member.role === 'admin' ? 'Administrator' : 'Band Member' }}
+          {{ member.band_role }}
         </p>
       </div>
     </div>

@@ -16,7 +16,7 @@
           v-model="songData.link"
           type="url"
           :disabled="isLoading"
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          class="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
         />
         <span v-if="errors.link" class="text-sm text-red-600">{{ errors.link }}</span>
       </div>
@@ -45,7 +45,7 @@
           type="text"
           required
           :disabled="isLoading"
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          class="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
         />
         <span v-if="errors.artist" class="text-sm text-red-600">{{ errors.artist }}</span>
       </div>
@@ -58,7 +58,7 @@
           type="text"
           required
           :disabled="isLoading"
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          class="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
         />
         <span v-if="errors.title" class="text-sm text-red-600">{{ errors.title }}</span>
       </div>
@@ -73,7 +73,7 @@
             min="0"
             required
             :disabled="isLoading"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            class="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           />
         </div>
         <div>
@@ -86,7 +86,7 @@
             max="59"
             required
             :disabled="isLoading"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            class="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
           />
         </div>
       </div>
@@ -98,7 +98,7 @@
           v-model="songData.notes"
           rows="3"
           :disabled="isLoading"
-          class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+          class="mt-1 block w-full border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
         />
       </div>
 

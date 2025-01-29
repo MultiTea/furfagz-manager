@@ -61,7 +61,7 @@
                     </div>
                   </div>
                   <span class="ml-2 text-sm text-gray-500">
-                    {{ bandMember?.username || user.email }}
+                    {{ bandMember?.username }}
                   </span>
                 </div>
   
