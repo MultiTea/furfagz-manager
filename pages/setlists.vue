@@ -1,194 +1,89 @@
-<!-- pages/setlists.vue -->
+// pages/setlists.vue
 <template>
   <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-    <div class="bg-white shadow sm:rounded-lg">
-      <div class="px-4 py-5 sm:p-6">
-        <h3 class="text-lg font-medium leading-6 text-gray-900">Current Setlist</h3>
-        <p class="mt-1 text-sm text-gray-500">
-          {{ isAdmin ? 'Drag and drop songs to reorder them.' : 'View the current setlist order.' }}
-        </p>
+    <BaseCard
+      title="Current Setlist"
+      :description="isAdmin ? 'Drag and drop songs to reorder them.' : 'View the current setlist order.'"
+    >
+      <!-- Loading State -->
+      <LoadingState v-if="isLoading" />
 
-        <div v-if="error" class="mt-4 p-4 bg-red-50 border border-red-400 rounded text-red-700">
-          {{ error }}
-        </div>
+      <!-- Empty State -->
+      <EmptyState 
+        v-else-if="!setlistSongs || setlistSongs.length === 0"
+        :message="isAdmin ? 'No songs have been added to the setlist yet. Add songs from the All Playlists page.' : 'No songs have been added to the setlist yet.'"
+      />
 
-        <div v-if="isLoading" class="mt-4 text-gray-500">
-          Loading setlist...
-        </div>
+      <!-- Content -->
+      <div v-else>
+        <!-- Regular list when not admin -->
+        <template v-if="!isAdmin">
+          <div class="mt-6 space-y-2">
+            <SetlistSongItem
+              v-for="(song, index) in setlistSongs"
+              :key="song.id"
+              :song="song"
+              :position="index + 1"
+              :is-admin="false"
+              :added-by="getMemberName(song.member_id)"
+            />
+          </div>
+        </template>
 
-        <div v-else-if="!setlistSongs || setlistSongs.length === 0" class="mt-4 text-gray-500">
-          No songs have been added to the setlist yet.
-          {{ isAdmin ? 'Add songs from the All Playlists page.' : '' }}
-        </div>
-
-        <div v-else>
-          <!-- Regular list when not admin -->
-          <template v-if="!isAdmin">
-            <div class="mt-6 space-y-2">
-              <div 
-                v-for="(song, index) in setlistSongs" 
-                :key="song.id"
-                class="bg-white border rounded-lg p-4 flex items-center space-x-4"
+        <!-- Draggable list for admin -->
+        <template v-else>
+          <TransitionGroup tag="div" name="list" class="mt-6 space-y-2">
+            <div
+              v-for="(song, index) in setlistSongs"
+              :key="song.id"
+              class="relative"
+              draggable="true"
+              @dragstart="dragStart($event, index)"
+              @dragend="dragEnd"
+              @dragover.prevent="dragOver($event, index)"
+              @dragenter.prevent="dragEnter(index)"
+              @dragleave.prevent="dragLeave(index)"
+              @drop.prevent="drop($event, index)"
+            >
+              <!-- Drop indicator above -->
+              <div
+                v-if="draggedItem !== null && draggedItem !== index && dropTarget === index"
+                class="absolute w-full h-2 -top-2 z-10"
               >
-                <div class="flex-none w-8 text-gray-500 font-medium">
-                  {{ index + 1 }}.
-                </div>
+                <div class="h-1 w-full bg-indigo-500 rounded-full transform translate-y-1/2"></div>
+              </div>
 
-                <!-- Thumbnail -->
-                <div class="flex-shrink-0">
-                  <img 
-                    v-if="song.thumbnail_url" 
-                    :src="song.thumbnail_url" 
-                    :alt="song.title"
-                    class="h-14 w-14 object-cover rounded-lg"
-                  />
-                  <div 
-                    v-else 
-                    class="h-14 w-14 bg-gray-100 rounded-lg flex items-center justify-center"
-                  >
-                    <svg class="h-7 w-7 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                    </svg>
-                  </div>
-                </div>
-
-                <div class="flex-1">
-                  <h4 class="text-lg font-semibold text-gray-900">{{ song.title }}</h4>
-                  <p class="text-sm text-gray-500">{{ song.artist }}</p>
-                  <div class="mt-1 flex items-center space-x-4 text-xs text-gray-500">
-                    <span>Duration: {{ formatDuration(song.duration) }}</span>
-                    <span>Added by: {{ getMemberName(song.member_id) }}</span>
-                  </div>
-                </div>
-
-                <div class="flex items-center space-x-2">
-                  <a 
-                    v-if="song.link"
-                    :href="song.link"
-                    target="_blank"
-                    class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    View Reference
-                  </a>
-                  <button
-                    v-if="song.notes"
-                    @click="showNotes(song)"
-                    class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                  >
-                    View Notes
-                  </button>
-                </div>
+              <div
+                :class="{
+                  'opacity-50': draggedItem === index,
+                  'border-indigo-500': dropTarget === index && draggedItem !== index
+                }"
+              >
+                <SetlistSongItem
+                  :song="song"
+                  :position="index + 1"
+                  :is-admin="true"
+                  :added-by="getMemberName(song.member_id)"
+                  @remove="removeFromSetlist(song)"
+                />
               </div>
             </div>
-          </template>
+          </TransitionGroup>
+        </template>
 
-          <!-- Draggable list for admin -->
-          <template v-else>
-            <TransitionGroup tag="div" name="list" class="mt-6 space-y-2">
-              <div
-                v-for="(song, index) in setlistSongs"
-                :key="song.id"
-                class="relative"
-              >
-                <!-- Drop indicator above -->
-                <div
-                  v-if="draggedItem !== null && draggedItem !== index && dropTarget === index"
-                  class="absolute w-full h-2 -top-2 z-10"
-                >
-                  <div class="h-1 w-full bg-indigo-500 rounded-full transform translate-y-1/2"></div>
-                </div>
-
-                <div
-                  class="bg-white border rounded-lg p-4 flex items-center space-x-4 cursor-move transition-all duration-200"
-                  :class="{
-                    'opacity-50': draggedItem === index,
-                    'border-indigo-500': dropTarget === index && draggedItem !== index
-                  }"
-                  draggable="true"
-                  @dragstart="dragStart($event, index)"
-                  @dragend="dragEnd"
-                  @dragover.prevent="dragOver($event, index)"
-                  @dragenter.prevent="dragEnter(index)"
-                  @dragleave.prevent="dragLeave(index)"
-                  @drop.prevent="drop($event, index)"
-                >
-                  <!-- Drag Handle -->
-                  <div class="handle text-gray-400">
-                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
-                    </svg>
-                  </div>
-
-                  <div class="flex-none w-8 text-gray-500 font-medium">
-                    {{ index + 1 }}.
-                  </div>
-
-                  <!-- Thumbnail -->
-                  <div class="flex-shrink-0">
-                    <img 
-                      v-if="song.thumbnail_url" 
-                      :src="song.thumbnail_url" 
-                      :alt="song.title"
-                      class="h-14 w-14 object-cover rounded-lg"
-                    />
-                    <div 
-                      v-else 
-                      class="h-14 w-14 bg-gray-100 rounded-lg flex items-center justify-center"
-                    >
-                      <svg class="h-7 w-7 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                      </svg>
-                    </div>
-                  </div>
-
-                  <div class="flex-1">
-                    <h4 class="text-lg font-semibold text-gray-900">{{ song.title }}</h4>
-                    <p class="text-sm text-gray-500">{{ song.artist }}</p>
-                    <div class="mt-1 flex items-center space-x-4 text-xs text-gray-500">
-                      <span>Duration: {{ formatDuration(song.duration) }}</span>
-                      <span>Added by: {{ getMemberName(song.member_id) }}</span>
-                    </div>
-                  </div>
-
-                  <div class="flex items-center space-x-2">
-                    <a 
-                      v-if="song.link"
-                      :href="song.link"
-                      target="_blank"
-                      class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                    >
-                      View Reference
-                    </a>
-                    <button
-                      v-if="song.notes"
-                      @click="showNotes(song)"
-                      class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-                    >
-                      View Notes
-                    </button>
-                    <button
-                      @click="removeFromSetlist(song)"
-                      class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </TransitionGroup>
-          </template>
-
-          <!-- Total Duration -->
-          <div class="mt-6 text-sm text-gray-500">
-            Total Duration: {{ formatDuration(totalDuration) }}
-          </div>
+        <!-- Total Duration -->
+        <div class="mt-6 text-sm text-gray-500">
+          Total Duration: {{ formatDuration(totalDuration) }}
         </div>
       </div>
-    </div>
+    </BaseCard>
   </div>
 </template>
 
+
 <script setup lang="ts">
+import { LoadingState, ErrorState, EmptyState, BaseCard, BaseButton } from '~/components/ui';
+import SetlistSongItem from '~/components/SetlistSongItem.vue';
 import { storeToRefs } from 'pinia';
 import { usePlaylistStore } from '~/stores/playlist';
 import { useMembersStore } from '~/stores/members';
@@ -344,12 +239,5 @@ function showNotes(song: PlaylistSong) {
 
 .list-leave-active {
   position: absolute;
-}
-
-/* Drop indicator animation */
-@keyframes dropPulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
 }
 </style>
