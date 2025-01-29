@@ -33,28 +33,25 @@
         <!-- Draggable list for admin -->
         <template v-else>
           <div class="mt-6">
+            <!-- First drop zone -->
+            <div
+              class="interactive-drop-zone transition-all duration-200"
+              :class="[
+                dropTarget === 0 ? 'bg-indigo-50 h-8' : 'h-2'
+              ]"
+              @dragover.prevent="dragOver($event, 0)"
+              @dragenter.prevent="dragEnter(0)"
+              @dragleave.prevent="dragLeave(0)"
+              @drop.prevent="drop($event, 0)"
+            >
+              <div 
+                v-show="dropTarget === 0" 
+                class="h-0.5 w-full bg-indigo-500 transform translate-y-4"
+              />
+            </div>
+
             <!-- List items -->
             <div>
-              <!-- First drop zone -->
-              <div
-                class="interactive-drop-zone"
-                :data-dragging="isDragging"
-                :class="[
-                  dropTarget === 0 ? 'bg-indigo-50' : '',
-                  isDragging ? 'h-8' : 'h-2'
-                ]"
-                @dragover.prevent="dragOver($event, 0)"
-                @dragenter.prevent="dragEnter(0)"
-                                  @dragleave.prevent="dragLeave($event, 0)"
-                @drop.prevent="drop($event, 0)"
-              >
-                <div 
-                  v-show="dropTarget === 0" 
-                  class="h-0.5 w-full bg-indigo-500 transform translate-y-4"
-                />
-              </div>
-
-              <!-- Items with drop zones -->
               <div
                 v-for="(song, index) in setlistSongs"
                 :key="song.id"
@@ -79,17 +76,16 @@
                 <div
                   class="interactive-drop-zone transition-all duration-200"
                   :class="[
-                    dropTarget === index + 1 ? 'bg-indigo-50' : '',
-                    isDragging ? 'h-8' : 'h-2'
+                    dropTarget === index + 1 ? 'bg-indigo-50 h-8 border-2 rounded border-indigo-500' : 'h-2'
                   ]"
                   @dragover.prevent="dragOver($event, index + 1)"
                   @dragenter.prevent="dragEnter(index + 1)"
-                  @dragleave.prevent="dragLeave($event, index + 1)"
+                  @dragleave.prevent="dragLeave(index + 1)"
                   @drop.prevent="drop($event, index + 1)"
                 >
                   <div 
                     v-show="dropTarget === index + 1" 
-                    class="h-0.5 w-full bg-indigo-500 transform translate-y-4"
+                    class="w-full transform translate-y-4"
                   />
                 </div>
               </div>
@@ -106,7 +102,6 @@
   </div>
 </template>
 
-
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
 import { usePlaylistStore } from '~/stores/playlist';
@@ -119,7 +114,6 @@ import SetlistSongItem from '~/components/SetlistSongItem.vue';
 import { LoadingState, ErrorState, EmptyState, BaseCard } from '~/components/ui';
 
 type PlaylistSong = Database['public']['Tables']['playlist_songs']['Row'];
-type DropPosition = 'top' | 'bottom' | null;
 
 // Composables
 const { isLoading, error, withLoading } = useLoadingState();
@@ -139,7 +133,7 @@ const isAdmin = ref(false);
 const isDragging = ref(false);
 const draggedItem = ref<number | null>(null);
 const dropTarget = ref<number | null>(null);
-const dropPosition = ref<DropPosition>(null);
+const dropPosition = ref<'top' | 'bottom' | null>(null);
 
 // Calculate total duration
 const totalDuration = computed(() => {
@@ -151,14 +145,6 @@ const totalDuration = computed(() => {
 function getMemberName(memberId: string) {
   const member = members.value.find(m => m.id === memberId);
   return member?.username || 'Unknown Member';
-}
-
-function getDropPosition(event: DragEvent): DropPosition {
-  const target = event.currentTarget as HTMLElement;
-  const rect = target.getBoundingClientRect();
-  const mouseY = event.clientY;
-  const midPoint = rect.top + rect.height / 2;
-  return mouseY < midPoint ? 'top' : 'bottom';
 }
 
 // Drag and drop handlers
@@ -183,11 +169,6 @@ function dragOver(event: DragEvent, index: number) {
   event.dataTransfer!.dropEffect = 'move';
 }
 
-function handleDragOver(event: DragEvent, index: number) {
-  dragOver(event, index);
-  dropPosition.value = getDropPosition(event);
-}
-
 function dragEnter(index: number) {
   if (draggedItem.value === null || draggedItem.value === index) return;
   dropTarget.value = index;
@@ -195,15 +176,12 @@ function dragEnter(index: number) {
 
 function dragLeave(index: number) {
   if (dropTarget.value === index) {
-    dropTarget.value = null;
-    dropPosition.value = null;
+    const relatedTarget = document.querySelector('.interactive-drop-zone:hover');
+    if (!relatedTarget) {
+      dropTarget.value = null;
+      dropPosition.value = null;
+    }
   }
-}
-
-async function handleDrop(event: DragEvent, dropIndex: number) {
-  const finalPosition = dropPosition.value;
-  await drop(event, dropIndex);
-  dropPosition.value = finalPosition;
 }
 
 async function drop(event: DragEvent, dropIndex: number) {
@@ -274,7 +252,7 @@ onMounted(async () => {
   margin: 0;
   pointer-events: all;
   min-height: 0.5rem;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .interactive-drop-zone:hover {
@@ -292,9 +270,8 @@ onMounted(async () => {
   z-index: 1;
 }
 
-/* Maintain drop target state during transitions */
-.interactive-drop-zone[data-dragging="true"] {
-  background-color: rgba(79, 70, 229, 0.05);
-  transition-duration: 0s;
+/* Only highlight active drop target */
+.interactive-drop-zone.bg-indigo-50 {
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
 }
 </style>
