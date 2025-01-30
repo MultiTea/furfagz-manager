@@ -30,6 +30,15 @@
           :member="member" 
           :playlist-count="member.playlist_songs.length"
         />
+ <!-- Playlist Statistics -->
+ <div class="px-4 py-3 bg-gray-50 border-t border-b border-gray-200">
+          <div class="flex justify-between text-sm text-gray-600">
+            <div class="space-x-4">
+              <span>Playlist duration: {{ calculateTotalDuration(member.playlist_songs) }}</span>
+            </div>
+            <span>Selected: {{ getSelectedSongsCount(member.playlist_songs) }} ({{ calculateSelectedDuration(member.playlist_songs) }})</span>
+          </div>
+        </div>
 
         <!-- Playlist Content -->
         <div class="px-4 py-5 sm:p-6">
@@ -68,6 +77,7 @@ import type { Database } from '~/types/supabase';
 import { useLoadingState } from '~/composables/useLoadingState';
 import { useSupabaseAuth } from '~/composables/useSupabaseAuth';
 import { useAdmin } from '~/composables/useAdmin';
+import { useFormatDuration } from '~/composables/useFormatDuration';
 import MemberHeader from '~/components/MemberHeader.vue';
 import PlaylistSongItem from '~/components/PlaylistSongItem.vue';
 import { LoadingState, ErrorState, EmptyState } from '~/components/ui';
@@ -79,6 +89,7 @@ type PlaylistSong = Database['public']['Tables']['playlist_songs']['Row'];
 const { isLoading, error, withLoading } = useLoadingState();
 const { checkAuthAndRedirect } = useSupabaseAuth();
 const { isAdmin, checkAdminStatus } = useAdmin();
+const { formatDuration } = useFormatDuration();
 
 // Stores
 const membersStore = useMembersStore();
@@ -86,13 +97,49 @@ const playlistStore = usePlaylistStore();
 const { members } = storeToRefs(membersStore);
 
 // Get member name by ID
-function getMemberName(memberId: string) {
+const getMemberName = (memberId: string) => {
   const member = members.value.find(m => m.id === memberId);
   return member?.username || 'Unknown Member';
-}
+};
+
+// Calculate duration utilities
+const calculateDurationSum = (durations: string[]): string => {
+  let totalMinutes = 0;
+  let totalSeconds = 0;
+
+  durations.forEach(duration => {
+    const [minutes, seconds] = duration.split(':').map(Number);
+    totalMinutes += minutes;
+    totalSeconds += seconds;
+  });
+
+  totalMinutes += Math.floor(totalSeconds / 60);
+  totalSeconds = totalSeconds % 60;
+
+  return `${totalMinutes}:${totalSeconds.toString().padStart(2, '0')}`;
+};
+
+// Playlist statistics methods
+const calculateTotalDuration = (songs: PlaylistSong[]) => {
+  return formatDuration(
+    calculateDurationSum(songs.map(song => song.duration))
+  );
+};
+
+const calculateSelectedDuration = (songs: PlaylistSong[]) => {
+  const selectedSongs = songs.filter(song => song.is_in_setlist);
+  return formatDuration(
+    calculateDurationSum(selectedSongs.map(song => song.duration))
+  );
+};
+
+const getSelectedSongsCount = (songs: PlaylistSong[]) => {
+  const count = songs.filter(song => song.is_in_setlist).length;
+  return `${count} of ${songs.length} songs`;
+};
 
 // Handle setlist toggle
-async function handleSetlistToggle(song: PlaylistSong) {
+const handleSetlistToggle = async (song: PlaylistSong) => {
   if (!isAdmin.value) return;
   
   try {
@@ -104,7 +151,7 @@ async function handleSetlistToggle(song: PlaylistSong) {
       error.value = e.message;
     }
   }
-}
+};
 
 // Initialize data
 onMounted(async () => {

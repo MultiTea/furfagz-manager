@@ -1,5 +1,5 @@
 // services/YouTubeService.ts
-import type { MediaDetails, YoutubeApiResponse } from '~/types/services';
+import type { MediaDetails, YoutubeApiResponse, YouTubeThumbnails } from '~/types/services';
 import { MediaServiceError } from '~/types/services';
 
 export class YouTubeService {
@@ -40,12 +40,12 @@ export class YouTubeService {
 
       const video = data.items[0];
       const duration = this.parseDuration(video.contentDetails.duration);
+      const thumbnailUrl = this.getBestThumbnailUrl(videoId, video.snippet.thumbnails);
 
       return {
         title: video.snippet.title,
         artist: video.snippet.channelTitle,
-        thumbnailUrl: video.snippet.thumbnails.default?.url || 
-                     video.snippet.thumbnails.medium?.url || '',
+        thumbnailUrl,
         duration
       };
     } catch (error: unknown) {
@@ -58,6 +58,29 @@ export class YouTubeService {
         'youtube/videos'
       );
     }
+  }
+
+  private getBestThumbnailUrl(videoId: string, thumbnails: YouTubeThumbnails): string {
+    // Custom high quality thumbnail URL
+    const hqThumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+    
+    // If maxres is available, use it
+    if (thumbnails.maxres?.url) {
+      return thumbnails.maxres.url;
+    }
+    
+    // If standard is available, use it
+    if (thumbnails.standard?.url) {
+      return thumbnails.standard.url;
+    }
+    
+    // If high is available, use it
+    if (thumbnails.high?.url) {
+      return thumbnails.high.url;
+    }
+    
+    // Fall back to our custom HQ thumbnail
+    return hqThumbnail;
   }
 
   private parseDuration(duration: string): { minutes: number, seconds: number } {

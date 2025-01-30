@@ -50,7 +50,6 @@
         <p class="text-sm text-gray-500">{{ song.artist }}</p>
         <div class="mt-1 flex items-center space-x-4 text-xs text-gray-500">
           <span>Duration: {{ formatDuration(song.duration) }}</span>
-          <span>Added by: {{ addedBy }}</span>
         </div>
       </div>
       
