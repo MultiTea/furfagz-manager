@@ -121,25 +121,4 @@ onMounted(async () => {
     });
   }
 });
-
-const route = useRoute()
-const { storeTokenData } = useSpotifyAuth()
-
-// Handle tokens passed in URL
-onMounted(() => {
-  const token = route.query.token as string
-  const refreshToken = route.query.refresh_token as string
-  const expiresIn = parseInt(route.query.expires_in as string)
-
-  if (token && refreshToken && expiresIn) {
-    storeTokenData({
-      access_token: token,
-      refresh_token: refreshToken,
-      expires_in: expiresIn
-    })
-
-    // Clean up URL
-    navigateTo('/', { replace: true })
-  }
-})
 </script>

@@ -17,15 +17,14 @@ export default defineNuxtConfig({
     exposeConfig: false,
     viewer: true
   },
-  // Runtime config
   runtimeConfig: {
     // Private keys are only available on the server
     spotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET,
     
     // Public keys that are available on both client and server
     public: {
-      appUrl: process.env.APP_URL || 'http://localhost:3000',
       spotifyClientId: process.env.SPOTIFY_CLIENT_ID,
       youtubeApiKey: process.env.YOUTUBE_API_KEY,
     }
-  },})
+  },
+})

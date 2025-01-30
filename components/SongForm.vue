@@ -177,7 +177,7 @@ const { isLoading, error, withLoading } = useLoadingState();
 const { errors, validateForm } = useFormValidation();
 
 const youtubeService = new YouTubeService(config.public.youtubeApiKey);
-const spotifyService = new SpotifyService()
+const spotifyService = new SpotifyService();
 
 const emit = defineEmits<{
   (e: 'added'): void
