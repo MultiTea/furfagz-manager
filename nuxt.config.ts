@@ -1,22 +1,48 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  compatibilityDate: '2024-11-01',
+  ssr: true,
   devtools: { enabled: true },
-  modules: ['@nuxtjs/supabase', '@pinia/nuxt', '@nuxtjs/tailwindcss'],
+
+  modules: [
+    '@nuxtjs/supabase',
+    '@pinia/nuxt',
+    '@nuxtjs/tailwindcss'
+  ],
+
+  // Remove the baseURL and buildAssetsDir since we're deploying to Netlify
   app: {
-    // This is important for GitHub Pages deployment
-    baseURL: '/',
-    buildAssetsDir: 'assets'
+    head: {
+      title: 'Band Setlist Manager',
+      meta: [
+        { charset: 'utf-8' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' }
+      ]
+    }
   },
-  typescript: {
-    strict: true
-  },
+
+  // Update Tailwind configuration
   tailwindcss: {
     cssPath: '~/assets/css/tailwind.css',
-    configPath: 'tailwind.config.ts',
+    configPath: 'tailwind.config',
     exposeConfig: false,
     viewer: true
   },
+
+  typescript: {
+    strict: true
+  },
+
+  // Add Supabase configuration
+  supabase: {
+    url: process.env.SUPABASE_URL,
+    key: process.env.SUPABASE_KEY,
+    redirectOptions: {
+      login: '/login',
+      callback: '/confirm',
+      exclude: ['/*'],
+    }
+  },
+
   runtimeConfig: {
     // Private keys are only available on the server
     spotifyClientSecret: process.env.SPOTIFY_CLIENT_SECRET,
@@ -25,8 +51,8 @@ export default defineNuxtConfig({
     public: {
       spotifyClientId: process.env.SPOTIFY_CLIENT_ID,
       youtubeApiKey: process.env.YOUTUBE_API_KEY,
-      supabaseUrl: process.env.SUPABASE_URL,
-      supabaseKey: process.env.SUPABASE_KEY,
     }
   },
+
+  compatibilityDate: '2025-01-31',
 })

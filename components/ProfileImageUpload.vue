@@ -69,24 +69,26 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
-import { useImageUpload } from '~/composables/useImageUpload';
-import { useLoadingState } from '~/composables/useLoadingState';
+import { ref, computed } from 'vue'
+import type { Database } from '~/types/supabase'
+import { useImageColor } from '~/composables/useImageColor'
+import { useLoadingState } from '~/composables/useLoadingState'
 
 const props = defineProps<{
-  currentImageUrl: string | null;
-  username: string;
-}>();
+  currentImageUrl: string | null
+  username: string
+}>()
 
 const emit = defineEmits<{
-  (e: 'update:image', url: string | null): void;
-}>();
+  (e: 'update:image', url: string | null): void
+}>()
 
-const { uploadImage, removeImage } = useImageUpload();
-const { isLoading, error, withLoading } = useLoadingState();
+const supabase = useSupabaseClient<Database>()
+const user = useSupabaseUser()
+const { isLoading, error, withLoading } = useLoadingState()
 
-const fileInput = ref<HTMLInputElement | null>(null);
-const selectedFileName = ref<string | null>(null);
+const fileInput = ref<HTMLInputElement | null>(null)
+const selectedFileName = ref<string | null>(null)
 
 // Compute initials for avatar placeholder
 const initials = computed(() => {
@@ -95,56 +97,96 @@ const initials = computed(() => {
     .map(word => word[0])
     .join('')
     .toUpperCase()
-    .slice(0, 2);
-});
-
-// Utility function to extract file path from URL
-const extractFilePathFromUrl = (url: string): string => {
-  const urlParts = url.split('/');
-  return `${urlParts[urlParts.length - 2]}/${urlParts[urlParts.length - 1]}`;
-};
+    .slice(0, 2)
+})
 
 // Handle file selection and upload
 async function handleFileSelect(event: Event) {
-  const input = event.target as HTMLInputElement;
-  if (!input.files?.length) return;
+  const input = event.target as HTMLInputElement
+  if (!input.files?.length) return
+  if (!user.value?.id) {
+    error.value = 'You must be logged in to upload images'
+    return
+  }
 
-  const file = input.files[0];
-  selectedFileName.value = file.name;
+  const file = input.files[0]
+  selectedFileName.value = file.name
 
   try {
-    const publicUrl = await uploadImage(
-      file,
-      'profile-images',
-      `profile/${Date.now()}`
-    );
-    emit('update:image', publicUrl);
-    selectedFileName.value = null;
-    if (fileInput.value) fileInput.value.value = '';
+    await withLoading(async () => {
+      // Validate file
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('Image must be less than 5MB')
+      }
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Selected file must be an image')
+      }
+
+      // Create file path
+      const fileExt = file.name.split('.').pop()
+      const fileName = `profile/${user.value.id}/${Date.now()}.${fileExt}`
+
+      // Upload file
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('profile-images')
+        .upload(fileName, file, {
+          upsert: true,
+          contentType: file.type
+        })
+
+      if (uploadError) throw uploadError
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-images')
+        .getPublicUrl(fileName)
+
+      emit('update:image', publicUrl)
+      selectedFileName.value = null
+    })
   } catch (e: any) {
-    if (fileInput.value) fileInput.value.value = '';
+    error.value = e.message
+  } finally {
+    if (fileInput.value) {
+      fileInput.value.value = ''
+    }
   }
 }
 
 // Handle image removal
 async function handleRemoveImage() {
-  if (!props.currentImageUrl) return;
+  if (!props.currentImageUrl || !user.value?.id) return
 
   try {
-    const filePath = extractFilePathFromUrl(props.currentImageUrl);
-    await removeImage('profile-images', filePath);
-    emit('update:image', null);
+    await withLoading(async () => {
+      // Ensure currentImageUrl is not null before proceeding
+      if (!props.currentImageUrl) {
+        throw new Error('No image URL provided')
+      }
+
+      const pathParts = props.currentImageUrl.split('profile-images/')[1]
+      if (!pathParts) {
+        throw new Error('Invalid image URL format')
+      }
+
+      const { error: deleteError } = await supabase.storage
+        .from('profile-images')
+        .remove([pathParts])
+
+      if (deleteError) throw deleteError
+      emit('update:image', null)
+    })
   } catch (e: any) {
-    console.error('Error removing image:', e);
+    error.value = e.message
   }
 }
 
 // Clean up on component unmount
 onBeforeUnmount(() => {
   if (fileInput.value) {
-    fileInput.value.value = '';
+    fileInput.value.value = ''
   }
-});
+})
 </script>
 
 <style scoped>
