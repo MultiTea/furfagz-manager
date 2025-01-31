@@ -93,9 +93,66 @@
           </div>
         </template>
 
-        <!-- Total Duration -->
-        <div class="mt-6 text-sm text-gray-500">
-          Total Duration: {{ formatDuration(totalDuration) }}
+        <!-- Setlist Footer -->
+        <div class="mt-8 pt-4 border-t border-gray-200">
+          <div class="flex flex-col space-y-3">
+            <!-- Stats Row -->
+            <div class="flex justify-between items-center text-sm text-gray-600">
+              <div class="flex items-center space-x-2">
+                <svg 
+                  class="h-5 w-5 text-gray-400" 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path 
+                    stroke-linecap="round" 
+                    stroke-linejoin="round" 
+                    stroke-width="2" 
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" 
+                  />
+                </svg>
+                <span>Total Duration: {{ formattedTotalDuration }}</span>
+              </div>
+              <div class="flex items-center space-x-2">
+                <svg 
+                  class="h-5 w-5 text-gray-400" 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path 
+                    stroke-linecap="round" 
+                    stroke-linejoin="round" 
+                    stroke-width="2" 
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" 
+                  />
+                </svg>
+                <span>Total Songs: {{ setlistSongs.length }}</span>
+              </div>
+            </div>
+            
+            <!-- Last Updated Row -->
+            <div class="flex justify-end items-center text-sm text-gray-500">
+              <svg 
+                class="h-5 w-5 text-gray-400 mr-2" 
+                xmlns="http://www.w3.org/2000/svg" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                stroke="currentColor"
+              >
+                <path 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round" 
+                  stroke-width="2" 
+                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" 
+                />
+              </svg>
+              <span>Last Updated: {{ lastUpdated }}</span>
+            </div>
+          </div>
         </div>
       </div>
     </BaseCard>
@@ -118,7 +175,7 @@ type PlaylistSong = Database['public']['Tables']['playlist_songs']['Row'];
 // Composables
 const { isLoading, error, withLoading } = useLoadingState();
 const { checkAuthAndRedirect } = useSupabaseAuth();
-const { formatDuration, calculateTotalDuration } = useFormatDuration();
+const { formatDuration } = useFormatDuration();
 
 // Stores
 const playlistStore = usePlaylistStore();
@@ -135,10 +192,38 @@ const draggedItem = ref<number | null>(null);
 const dropTarget = ref<number | null>(null);
 const dropPosition = ref<'top' | 'bottom' | null>(null);
 
-// Calculate total duration
-const totalDuration = computed(() => {
-  const durations = setlistSongs.value.map(song => song.duration);
-  return calculateTotalDuration(durations);
+// Calculate the last update time
+const lastUpdated = computed(() => {
+  if (setlistSongs.value.length === 0) return 'Never';
+  
+  const latestUpdate = Math.max(
+    ...setlistSongs.value.map(song => new Date(song.updated_at).getTime())
+  );
+  return new Date(latestUpdate).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+});
+
+// Calculate total duration in seconds and format it
+const formattedTotalDuration = computed(() => {
+  let totalSeconds = 0;
+  
+  setlistSongs.value.forEach(song => {
+    const [minutes = '0', seconds = '0'] = song.duration.split(':');
+    totalSeconds += parseInt(minutes) * 60 + parseInt(seconds);
+  });
+
+  const hours = Math.floor(totalSeconds / 3600);
+  const remainingMinutes = Math.floor((totalSeconds % 3600) / 60);
+  const remainingSeconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${remainingMinutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
+  return `${remainingMinutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 });
 
 // Get member name by ID
