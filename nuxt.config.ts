@@ -25,6 +25,8 @@ export default defineNuxtConfig({
     public: {
       spotifyClientId: process.env.SPOTIFY_CLIENT_ID,
       youtubeApiKey: process.env.YOUTUBE_API_KEY,
+      supabaseUrl: process.env.SUPABASE_URL,
+      supabaseKey: process.env.SUPABASE_KEY,
     }
   },
 })
