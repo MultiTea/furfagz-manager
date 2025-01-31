@@ -11,7 +11,7 @@
           :src="member.avatar_url"
           :alt="member.username"
           class="w-full h-full object-cover"
-          @load="updateColors"
+          @load="handleImageLoad"
         />
         <div
           v-else
@@ -100,8 +100,9 @@ const props = defineProps<{
   selectedCount: string;
 }>();
 
+const supabase = useSupabaseClient<Database>();
 const { getMedianColor } = useImageColor();
-const bgColor = ref('rgb(249, 250, 251)'); // Default gray-50
+const bgColor = ref(props.member.background_color || 'rgb(249, 250, 251)'); // Use stored color or default
 const isDarkBackground = ref(false);
 
 // Calculate relative luminance
@@ -127,10 +128,31 @@ function checkIsDarkBackground(color: string) {
   return luminance < 0.5;
 }
 
+// Save the background color to the database
+async function saveBackgroundColor(color: string) {
+  try {
+    const { error } = await supabase
+      .from('band_members')
+      .update({ background_color: color })
+      .eq('id', props.member.id);
+
+    if (error) {
+      console.error('Error saving background color:', error);
+    }
+  } catch (error) {
+    console.error('Error saving background color:', error);
+  }
+}
+
 // Update background color and calculate text colors
-const updateColors = async () => {
+const handleImageLoad = async () => {
   if (props.member.avatar_url) {
-    bgColor.value = await getMedianColor(props.member.avatar_url);
+    // If we don't have a stored color, calculate and save it
+    if (!props.member.background_color) {
+      const newColor = await getMedianColor(props.member.avatar_url);
+      bgColor.value = newColor;
+      await saveBackgroundColor(newColor);
+    }
     isDarkBackground.value = checkIsDarkBackground(bgColor.value);
   }
 };
@@ -156,5 +178,9 @@ const badgeColorClass = computed(() => ({
   'bg-gray-900/10 text-gray-900': !isDarkBackground.value,
 }));
 
-onMounted(updateColors);
+onMounted(() => {
+  if (props.member.avatar_url && props.member.background_color) {
+    isDarkBackground.value = checkIsDarkBackground(props.member.background_color);
+  }
+});
 </script>

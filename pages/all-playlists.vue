@@ -23,7 +23,7 @@
           
           <div v-else class="space-y-4">
             <PlaylistSongItem
-              v-for="song in member.playlist_songs"
+              v-for="song in sortedSongs(member.playlist_songs)"
               :key="song.id"
               :song="song"
               :is-admin="isAdmin"
@@ -70,6 +70,11 @@ function getMemberName(memberId: string) {
   const member = members.value.find(m => m.id === memberId);
   return member?.username || 'Unknown Member';
 }
+
+// Sort songs alphabetically by artist name
+const sortedSongs = (songs: PlaylistSong[]) => {
+  return [...songs].sort((a, b) => a.artist.localeCompare(b.artist));
+};
 
 const calculateDurationSum = (durations: string[]): string => {
   let totalSeconds = 0;

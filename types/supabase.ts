@@ -18,6 +18,7 @@ export type Json =
             avatar_url: string | null
             spotify_playlist: string | null
             youtube_playlist: string | null
+            background_color: string | null
             created_at: string
             updated_at: string
           }
