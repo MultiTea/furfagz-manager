@@ -5,7 +5,7 @@ export default defineNuxtConfig({
   modules: ['@nuxtjs/supabase', '@pinia/nuxt', '@nuxtjs/tailwindcss'],
   app: {
     // This is important for GitHub Pages deployment
-    baseURL: '/band-setlist-manager/',
+    baseURL: '/',
     buildAssetsDir: 'assets'
   },
   typescript: {
