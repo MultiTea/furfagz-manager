@@ -3,7 +3,7 @@
   <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
     <BaseCard
       title="My Song Suggestions"
-      description="Add songs you'd like to perform. The admin will review these when creating setlists."
+      description="Add songs of your choice you'd like to perform on stage."
     >
       <SongForm @added="handleSongAdded" />
 

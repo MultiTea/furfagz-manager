@@ -12,7 +12,7 @@ export default defineNuxtConfig({
   // Remove the baseURL and buildAssetsDir since we're deploying to Netlify
   app: {
     head: {
-      title: 'Band Setlist Manager',
+      title: 'Furfagz Manager',
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' }

@@ -134,6 +134,9 @@ interface FormData {
   band_role: string;
   role: Database['public']['Tables']['band_members']['Row']['role'];
   avatar_url: string | null;
+  spotify_playlist: string | null;
+  youtube_playlist: string | null;
+  background_color: string | null;
 }
 
 // Composables
@@ -152,7 +155,10 @@ const formData = ref<FormData>({
   username: '',
   band_role: '',
   role: profile.value?.role || 'member',
-  avatar_url: null
+  avatar_url: null,
+  spotify_playlist: null,
+  youtube_playlist: null,
+  background_color: null
 });
 
 const validationRules = {
@@ -234,12 +240,15 @@ onMounted(async () => {
     await withLoading(async () => {
       await store.fetchProfile();
       if (profile.value) {
-        formData.value = {
-          username: profile.value.username,
-          band_role: profile.value.band_role || '',
-          role: profile.value.role,
-          avatar_url: profile.value.avatar_url
-        };
+  formData.value = {
+    username: profile.value.username,
+    band_role: profile.value.band_role || '',
+    role: profile.value.role,
+    avatar_url: profile.value.avatar_url,
+    spotify_playlist: profile.value.spotify_playlist,
+    youtube_playlist: profile.value.youtube_playlist,
+    background_color: profile.value.background_color
+  };
       }
     });
   }

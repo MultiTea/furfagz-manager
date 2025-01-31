@@ -1,9 +1,9 @@
 <template>
   <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
     <div class="px-4 sm:px-0">
-      <h2 class="text-2xl font-semibold text-gray-900">Band Members' Playlists</h2>
+      <h2 class="text-2xl font-semibold text-gray-900">All Playlists</h2>
       <p class="mt-1 text-sm text-gray-600">
-        Review all song suggestions from band members. Each playlist shows songs that members would like to perform.
+        All the playlists from what we want to play on stage.
       </p>
     </div>
 
