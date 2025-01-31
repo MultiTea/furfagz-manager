@@ -30,8 +30,8 @@
       <span v-if="errors.link" class="mt-2 block text-xs text-red-600">{{ errors.link }}</span>
     </div>
 
-    <!-- Expandable Form Section (Full Width) -->
-    <div 
+<!-- Expandable Form Section (Full Width) -->
+<div 
       v-if="songData.link"
       class="transition-all duration-500 ease-in-out"
       :class="[
@@ -39,29 +39,31 @@
         showExpandedForm ? 'opacity-100 translate-y-0' : ''
       ]"
     >
-      <div class="flex gap-12">
+      <div class="flex flex-col gap-6">
         <!-- Thumbnail Section -->
-        <div class="w-64 flex-shrink-0">
-          <div v-if="songData.thumbnail_url" class="relative group">
-            <img 
-              :src="songData.thumbnail_url" 
-              :alt="songData.title"
-              class="w-64 h-64 object-cover rounded-lg shadow-md"
-            />
-            <button 
-              type="button" 
-              @click="removeThumbnail"
-              class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white opacity-0 group-hover:opacity-100 rounded-lg transition-opacity duration-200"
-            >
-              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        <div class="w-full flex justify-center">
+          <div class="w-full max-w-sm">
+            <div v-if="songData.thumbnail_url" class="relative group">
+              <img 
+                :src="songData.thumbnail_url" 
+                :alt="songData.title"
+                class="w-full aspect-square object-cover rounded-lg shadow-md"
+              />
+              <button 
+                type="button" 
+                @click="removeThumbnail"
+                class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white opacity-0 group-hover:opacity-100 rounded-lg transition-opacity duration-200"
+              >
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div v-else class="w-full aspect-square bg-gray-100 rounded-lg flex items-center justify-center shadow-md">
+              <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5M8 8v8m8 4h2a2 2 0 002-2V6a2 2 0 00-2-2h-2M4 6v12a2 2 0 002 2h2M4 6V4a2 2 0 012-2h12a2 2 0 012 2v2M4 6h16" />
               </svg>
-            </button>
-          </div>
-          <div v-else class="w-64 h-64 bg-gray-100 rounded-lg flex items-center justify-center shadow-md">
-            <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5M8 8v8m8 4h2a2 2 0 002-2V6a2 2 0 00-2-2h-2M4 6v12a2 2 0 002 2h2M4 6V4a2 2 0 012-2h12a2 2 0 012 2v2M4 6h16" />
-            </svg>
+            </div>
           </div>
         </div>
 

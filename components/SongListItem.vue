@@ -97,14 +97,15 @@
         {{ formatDuration(song.duration) }}
       </div>
 
-      <!-- Actions -->
-      <div v-if="showActions" class="flex items-center space-x-2">
+<!-- Actions -->
+<div v-if="showActions" class="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
         <button
           @click="$emit('edit', song)"
-          class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          class="inline-flex items-center justify-center w-8 h-8 border border-gray-300 shadow-sm rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          title="Edit song"
         >
           <svg 
-            class="h-4 w-4 mr-1.5" 
+            class="h-4 w-4" 
             fill="none" 
             stroke="currentColor" 
             viewBox="0 0 24 24"
@@ -116,15 +117,15 @@
               d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" 
             />
           </svg>
-          Edit
         </button>
         
         <button
           @click="$emit('delete', song)"
-          class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          class="inline-flex items-center justify-center w-8 h-8 border border-transparent rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          title="Remove song"
         >
           <svg 
-            class="h-4 w-4 mr-1.5" 
+            class="h-4 w-4" 
             fill="none" 
             stroke="currentColor" 
             viewBox="0 0 24 24"
@@ -136,7 +137,6 @@
               d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" 
             />
           </svg>
-          Remove
         </button>
       </div>
     </div>
