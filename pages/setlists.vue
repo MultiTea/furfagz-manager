@@ -97,25 +97,10 @@
         <div class="mt-8 pt-4 border-t border-gray-200">
           <div class="flex flex-col space-y-3">
             <!-- Stats Row -->
-            <div class="flex justify-between items-center text-sm text-gray-600">
-              <div class="flex items-center space-x-2">
-                <svg 
-                  class="h-5 w-5 text-gray-400" 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  stroke="currentColor"
-                >
-                  <path 
-                    stroke-linecap="round" 
-                    stroke-linejoin="round" 
-                    stroke-width="2" 
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" 
-                  />
-                </svg>
-                <span>Total Duration: {{ formattedTotalDuration }}</span>
-              </div>
-              <div class="flex items-center space-x-2">
+            <div class="flex justify-between items-center text-sm">
+            <!-- Left side stats -->
+            <div class="space-y-2">
+              <div class="flex items-center space-x-2 text-gray-600">
                 <svg 
                   class="h-5 w-5 text-gray-400" 
                   xmlns="http://www.w3.org/2000/svg" 
@@ -132,12 +117,31 @@
                 </svg>
                 <span>Total Songs: {{ setlistSongs.length }}</span>
               </div>
+              
+              <!-- Last Updated -->
+              <div class="flex items-center space-x-2 text-gray-500">
+                <svg 
+                  class="h-5 w-5 text-gray-400" 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path 
+                    stroke-linecap="round" 
+                    stroke-linejoin="round" 
+                    stroke-width="2" 
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" 
+                  />
+                </svg>
+                <span>Last Updated: {{ lastUpdated }}</span>
+              </div>
             </div>
-            
-            <!-- Last Updated Row -->
-            <div class="flex justify-end items-center text-sm text-gray-500">
+
+            <!-- Right side - Duration -->
+            <div class="flex items-center space-x-2 text-gray-600">
               <svg 
-                class="h-5 w-5 text-gray-400 mr-2" 
+                class="h-5 w-5 text-gray-400" 
                 xmlns="http://www.w3.org/2000/svg" 
                 fill="none" 
                 viewBox="0 0 24 24" 
@@ -150,9 +154,10 @@
                   d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" 
                 />
               </svg>
-              <span>Last Updated: {{ lastUpdated }}</span>
+              <span>Total Duration: {{ formattedTotalDuration }}</span>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </BaseCard>
@@ -192,14 +197,19 @@ const draggedItem = ref<number | null>(null);
 const dropTarget = ref<number | null>(null);
 const dropPosition = ref<'top' | 'bottom' | null>(null);
 
+// Store reference for latest update
+const latestUpdate = ref<Date>(new Date());
+
+// Update the timestamp whenever the setlist changes
+watch(() => setlistSongs.value, () => {
+  latestUpdate.value = new Date();
+}, { deep: true });
+
 // Calculate the last update time
 const lastUpdated = computed(() => {
   if (setlistSongs.value.length === 0) return 'Never';
   
-  const latestUpdate = Math.max(
-    ...setlistSongs.value.map(song => new Date(song.updated_at).getTime())
-  );
-  return new Date(latestUpdate).toLocaleDateString('en-US', {
+  return latestUpdate.value.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -281,6 +291,8 @@ async function drop(event: DragEvent, dropIndex: number) {
     
     // Update the order in the store
     await playlistStore.updateSetlistOrder(newSongs);
+    // Update the timestamp
+    latestUpdate.value = new Date();
   } catch (e: unknown) {
     if (e instanceof Error) {
       error.value = e.message;
@@ -300,6 +312,8 @@ async function removeFromSetlist(song: PlaylistSong) {
     await withLoading(async () => {
       await playlistStore.toggleSongInSetlist(song.id, false);
       await playlistStore.fetchSetlistSongs();
+      // Update the timestamp
+      latestUpdate.value = new Date();
     });
   } catch (e: unknown) {
     if (e instanceof Error) {
