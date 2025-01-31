@@ -1,19 +1,57 @@
-// components/PlaylistSongItem.vue
 <template>
   <div class="space-y-4">
     <!-- Main Song Info -->
-    <div class="flex items-center space-x-4">
-      <!-- Setlist Checkbox -->
-      <div class="flex items-center h-5">
+    <div class="flex items-center space-x-4 me-4">
+      <!-- Admin Checkbox (if admin) -->
+      <div v-if="isAdmin" class="flex items-center h-5">
         <input
           :id="'setlist-' + song.id"
           :checked="song.is_in_setlist"
-          :disabled="!isAdmin"
           @change="$emit('setlist-toggle', song)"
-          class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-50"
+          class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
           type="checkbox"
         >
       </div>
+
+          <!-- Non-admin Checkbox -->
+          <div v-if="!isAdmin" class="flex items-center h-5">
+        <input
+          :id="'setlist-' + song.id"
+          :checked="song.is_in_setlist"
+          disabled
+          class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded opacity-50"
+          type="checkbox"
+        >
+      </div>  
+
+      <!-- Platform Play Button -->
+      <a 
+        v-if="song.link"
+        :href="song.link"
+        target="_blank"
+        class="inline-flex items-center justify-center w-10 h-10 group border border-transparent text-sm font-medium rounded-md shadow-sm"
+        :class="[
+          platformInfo.color,
+          platformInfo.hoverColor,
+          platformInfo.textColor,
+          'focus:outline-none focus:ring-2 focus:ring-offset-2',
+          platformInfo.name === 'YouTube' ? 'focus:ring-red-500' : 'focus:ring-green-500'
+        ]"
+        :title="'Play on ' + platformInfo.name"
+      >
+        <svg 
+          class="h-5 w-5 transition-opacity duration-200 group-hover:opacity-0 absolute"
+          viewBox="0 0 24 24" 
+          fill="currentColor"
+        >
+          <path d="M8 5v14l11-7z" />
+        </svg>
+        <component
+          :is="platformIcon"
+          class="h-5 w-5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 absolute"
+          aria-hidden="true"
+        />
+      </a>
 
       <!-- Thumbnail -->
       <div class="flex-shrink-0">
@@ -45,36 +83,14 @@
       </div>
 
       <!-- Song Info -->
-      <div class="flex-1">
+      <div class="flex-1 min-w-0">
         <h4 class="text-lg font-semibold text-gray-900">{{ song.title }}</h4>
         <p class="text-sm text-gray-500">{{ song.artist }}</p>
-        <div class="mt-1 flex items-center space-x-4 text-xs text-gray-500">
-          <span>Duration: {{ formatDuration(song.duration) }}</span>
-        </div>
       </div>
-      
-      <!-- Actions -->
-      <div>
-        <a 
-          v-if="song.link"
-          :href="song.link"
-          target="_blank"
-          class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md shadow-sm"
-          :class="[
-            platformInfo.color,
-            platformInfo.hoverColor,
-            platformInfo.textColor,
-            'focus:outline-none focus:ring-2 focus:ring-offset-2',
-            platformInfo.name === 'YouTube' ? 'focus:ring-red-500' : 'focus:ring-green-500'
-          ]"
-        >
-          <component
-            :is="platformIcon"
-            class="h-4 w-4 mr-1.5"
-            aria-hidden="true"
-          />
-          {{ buttonText }}
-        </a>
+
+      <!-- Duration -->
+      <div class="text-sm text-gray-500 tabular-nums">
+        {{ formatDuration(song.duration) }}
       </div>
     </div>
 
@@ -106,10 +122,9 @@ const emit = defineEmits<{
 }>();
 
 const { formatDuration } = useFormatDuration();
-const { getPlatformInfo, formatButtonText } = usePlatformLink();
+const { getPlatformInfo } = usePlatformLink();
 
 const platformInfo = computed(() => getPlatformInfo(props.song.link));
-const buttonText = computed(() => formatButtonText(platformInfo.value.name));
 
 const platformIcon = computed(() => {
   if (platformInfo.value.name === 'YouTube') {

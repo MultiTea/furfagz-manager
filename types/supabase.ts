@@ -16,6 +16,8 @@ export type Json =
             band_role: string
             role: 'admin' | 'member'
             avatar_url: string | null
+            spotify_playlist: string | null
+            youtube_playlist: string | null
             created_at: string
             updated_at: string
           }
