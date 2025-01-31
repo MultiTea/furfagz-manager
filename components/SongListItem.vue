@@ -1,20 +1,18 @@
-// components/SongListItem.vue
+# components/SongListItem.vue
 <template>
   <div class="space-y-4">
     <!-- Main Song Info -->
     <div class="flex items-center space-x-4">
-      <!-- Platform Play Button -->
+      <!-- Play Button -->
       <a 
         v-if="song.link"
         :href="song.link"
         target="_blank"
-        class="inline-flex items-center justify-center w-10 h-10 group border border-transparent text-sm font-medium rounded-md shadow-sm"
+        class="inline-flex items-center justify-center w-10 h-10 group border border-transparent rounded-md shadow-sm shrink-0"
         :class="[
           platformInfo.color,
           platformInfo.hoverColor,
-          platformInfo.textColor,
-          'focus:outline-none focus:ring-2 focus:ring-offset-2',
-          platformInfo.name === 'YouTube' ? 'focus:ring-red-500' : 'focus:ring-green-500'
+          platformInfo.textColor
         ]"
         :title="'Play on ' + platformInfo.name"
       >
@@ -33,7 +31,7 @@
       </a>
 
       <!-- Thumbnail -->
-      <div class="flex-shrink-0">
+      <div class="shrink-0">
         <img 
           v-if="song.thumbnail_url" 
           :src="song.thumbnail_url" 
@@ -62,14 +60,15 @@
       </div>
 
       <!-- Song Info -->
-      <div class="flex-1 min-w-0">
-        <h4 class="text-lg font-semibold text-gray-900">{{ song.title }}</h4>
-        <p class="text-sm text-gray-500">{{ song.artist }}</p>
+      <div class="min-w-0 flex-1">
+        <h4 class="text-base sm:text-lg font-semibold text-gray-900 line-clamp-2">
+          {{ song.title }}
+        </h4>
+        <p class="text-sm text-gray-500 truncate">{{ song.artist }}</p>
         
-        <!-- Additional Actions/Info -->
-        <div class="mt-1 flex items-center space-x-4">
+        <!-- Notes Toggle -->
+        <div v-if="song.notes" class="mt-1">
           <button 
-            v-if="song.notes"
             @click="isNotesVisible = !isNotesVisible"
             class="inline-flex items-center text-sm text-indigo-600 hover:text-indigo-500"
           >
@@ -93,15 +92,15 @@
       </div>
 
       <!-- Duration -->
-      <div class="text-sm text-gray-500 tabular-nums">
+      <div class="text-sm text-gray-500 tabular-nums shrink-0">
         {{ formatDuration(song.duration) }}
       </div>
 
-<!-- Actions -->
-<div v-if="showActions" class="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+      <!-- Actions -->
+      <div v-if="showActions" class="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2 shrink-0">
         <button
           @click="$emit('edit', song)"
-          class="inline-flex items-center justify-center w-8 h-8 border border-gray-300 shadow-sm rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          class="inline-flex items-center justify-center w-8 h-8 border border-gray-300 shadow-sm rounded-md text-gray-700 bg-white hover:bg-gray-50"
           title="Edit song"
         >
           <svg 
@@ -121,7 +120,7 @@
         
         <button
           @click="$emit('delete', song)"
-          class="inline-flex items-center justify-center w-8 h-8 border border-transparent rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          class="inline-flex items-center justify-center w-8 h-8 border border-transparent rounded-md text-white bg-red-600 hover:bg-red-700"
           title="Remove song"
         >
           <svg 

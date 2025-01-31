@@ -1,11 +1,6 @@
 // components/SongForm.vue
 <template>
   <div class="mt-8">
-    <!-- Error Message -->
-    <div v-if="error" class="mb-6 p-4 bg-red-50 rounded-lg text-red-700 text-sm">
-      {{ error }}
-    </div>
-
     <!-- Link Input Section (Centered) -->
     <div class="max-w-2xl mx-auto mb-12">
       <span class="block text-xs text-gray-500 text-center mb-4">
@@ -30,8 +25,8 @@
       <span v-if="errors.link" class="mt-2 block text-xs text-red-600">{{ errors.link }}</span>
     </div>
 
-<!-- Expandable Form Section (Full Width) -->
-<div 
+    <!-- Expandable Form Section -->
+    <div 
       v-if="songData.link"
       class="transition-all duration-500 ease-in-out"
       :class="[
@@ -39,36 +34,35 @@
         showExpandedForm ? 'opacity-100 translate-y-0' : ''
       ]"
     >
-      <div class="flex flex-col gap-6">
+      <!-- Container with responsive layout -->
+      <div class="block sm:flex sm:gap-12">
         <!-- Thumbnail Section -->
-        <div class="w-full flex justify-center">
-          <div class="w-full max-w-sm">
-            <div v-if="songData.thumbnail_url" class="relative group">
-              <img 
-                :src="songData.thumbnail_url" 
-                :alt="songData.title"
-                class="w-full aspect-square object-cover rounded-lg shadow-md"
-              />
-              <button 
-                type="button" 
-                @click="removeThumbnail"
-                class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white opacity-0 group-hover:opacity-100 rounded-lg transition-opacity duration-200"
-              >
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div v-else class="w-full aspect-square bg-gray-100 rounded-lg flex items-center justify-center shadow-md">
-              <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5M8 8v8m8 4h2a2 2 0 002-2V6a2 2 0 00-2-2h-2M4 6v12a2 2 0 002 2h2M4 6V4a2 2 0 012-2h12a2 2 0 012 2v2M4 6h16" />
+        <div class="w-full max-w-sm mx-auto mb-6 sm:mb-0 sm:w-64 sm:flex-shrink-0">
+          <div v-if="songData.thumbnail_url" class="relative group">
+            <img 
+              :src="songData.thumbnail_url" 
+              :alt="songData.title"
+              class="w-full aspect-square sm:w-64 sm:h-64 object-cover rounded-lg shadow-md"
+            />
+            <button 
+              type="button" 
+              @click="removeThumbnail"
+              class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white opacity-0 group-hover:opacity-100 rounded-lg transition-opacity duration-200"
+            >
+              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </div>
+            </button>
+          </div>
+          <div v-else class="w-full aspect-square sm:w-64 sm:h-64 bg-gray-100 rounded-lg flex items-center justify-center shadow-md">
+            <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5M8 8v8m8 4h2a2 2 0 002-2V6a2 2 0 00-2-2h-2M4 6v12a2 2 0 002 2h2M4 6V4a2 2 0 012-2h12a2 2 0 012 2v2M4 6h16" />
+            </svg>
           </div>
         </div>
 
         <!-- Form Section -->
-        <form @submit.prevent="handleSubmit" class="flex-1 space-y-12">
+        <form @submit.prevent="handleSubmit" class="flex-1 space-y-6">
           <!-- Artist Input -->
           <div class="relative flex border-0 border-b-2 border-gray-200 items-end">
             <label 
