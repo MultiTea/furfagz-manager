@@ -11,10 +11,14 @@
     <ErrorState v-else-if="error" class="mt-6" :message="error" />
 
     <div v-else class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div v-for="member in members" :key="member.id" class="bg-white shadow sm:rounded-lg overflow-hidden">
+      <div 
+        v-for="member in members" 
+        :key="member.id" 
+        class="bg-white shadow sm:rounded-lg overflow-hidden flex flex-col"
+      >
         <MemberHeader :member="member" :selected-count="getSelectedSongsCount(member.playlist_songs)" />
 
-        <div class="px-4 py-5 sm:p-6">
+        <div class="px-4 py-5 sm:p-6 flex-grow">
           <EmptyState v-if="member.playlist_songs.length === 0" message="No songs added yet." />
           
           <div v-else class="space-y-4">
@@ -28,8 +32,8 @@
             />
           </div>
         </div>
-        <div class="px-4 py-3 bg-gray-50 border-t border-b border-gray-200">
-          <span class="base">Duration</span>
+
+        <div class="px-4 py-3 bg-gray-50 border-t border-gray-200">
           <div class="flex justify-between text-sm text-gray-600">
             <span>Total: {{ calculateTotalDuration(member.playlist_songs) }}</span>
             <span>Selected: {{ calculateSelectedDuration(member.playlist_songs) }}</span>
@@ -48,6 +52,9 @@ import type { Database } from '~/types/supabase';
 import { useLoadingState } from '~/composables/useLoadingState';
 import { useSupabaseAuth } from '~/composables/useSupabaseAuth';
 import { useAdmin } from '~/composables/useAdmin';
+import { LoadingState, ErrorState, EmptyState } from '~/components/ui';
+import MemberHeader from '~/components/MemberHeader.vue';
+import PlaylistSongItem from '~/components/PlaylistSongItem.vue';
 
 type PlaylistSong = Database['public']['Tables']['playlist_songs']['Row'];
 

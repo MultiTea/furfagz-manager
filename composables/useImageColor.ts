@@ -25,20 +25,51 @@ export function useImageColor() {
           // Collect all RGB values
           const colors: number[][] = [];
           for (let i = 0; i < imageData.length; i += 4) {
-            colors.push([
-              imageData[i],     // R
-              imageData[i + 1], // G
-              imageData[i + 2]  // B
-            ]);
+            // Skip very dark or very light colors
+            const r = imageData[i];
+            const g = imageData[i + 1];
+            const b = imageData[i + 2];
+            
+            // Calculate perceived brightness
+            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+            
+            // Only include colors within a good brightness range
+            if (brightness > 30 && brightness < 225) {
+              colors.push([r, g, b]);
+            }
           }
   
-          // Get median for each channel
-          const medianColor = colors[Math.floor(colors.length / 2)];
+          if (colors.length === 0) {
+            resolve('rgb(249, 250, 251)'); // Default gray-50
+            return;
+          }
+  
+          // Sort colors by saturation
+          const sortedColors = colors.sort((a, b) => {
+            const [r1, g1, b1] = a;
+            const [r2, g2, b2] = b;
+            
+            // Calculate saturation
+            const max1 = Math.max(r1, g1, b1);
+            const min1 = Math.min(r1, g1, b1);
+            const sat1 = max1 === 0 ? 0 : (max1 - min1) / max1;
+            
+            const max2 = Math.max(r2, g2, b2);
+            const min2 = Math.min(r2, g2, b2);
+            const sat2 = max2 === 0 ? 0 : (max2 - min2) / max2;
+            
+            return sat2 - sat1;
+          });
+  
+          // Take the most saturated color
+          const baseColor = sortedColors[0];
           
-          // Make color very light for background
-          const lightColor = medianColor.map(c => Math.min(255, Math.floor(c + (255 - c) * 0.65)));
+          // Create a vibrant version for the background
+          const vibrantColor = baseColor.map(c => 
+            Math.min(255, Math.floor(c + (255 - c) * 0.2))
+          );
           
-          resolve(`rgb(${lightColor.join(',')})`);
+          resolve(`rgb(${vibrantColor[0]}, ${vibrantColor[1]}, ${vibrantColor[2]})`);
         };
   
         img.onerror = () => {

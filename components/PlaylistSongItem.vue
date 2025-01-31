@@ -2,27 +2,66 @@
   <div class="space-y-4">
     <!-- Main Song Info -->
     <div class="flex items-center space-x-4 me-4">
-      <!-- Admin Checkbox (if admin) -->
-      <div v-if="isAdmin" class="flex items-center h-5">
-        <input
-          :id="'setlist-' + song.id"
-          :checked="song.is_in_setlist"
-          @change="$emit('setlist-toggle', song)"
-          class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-          type="checkbox"
-        >
-      </div>
 
-          <!-- Non-admin Checkbox -->
-          <div v-if="!isAdmin" class="flex items-center h-5">
-        <input
-          :id="'setlist-' + song.id"
-          :checked="song.is_in_setlist"
-          disabled
-          class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded opacity-50"
-          type="checkbox"
-        >
-      </div>  
+<!-- Replace the current checkbox div with this: -->
+<div v-if="isAdmin" class="relative flex items-center h-5">
+  <input
+    :id="'setlist-' + song.id"
+    :checked="song.is_in_setlist"
+    @change="$emit('setlist-toggle', song)"
+    type="checkbox"
+    class="sr-only"
+  >
+  <label 
+    :for="'setlist-' + song.id"
+    class="relative w-5 h-5 cursor-pointer border-2 rounded 
+           flex items-center justify-center transition-all duration-200"
+    :class="[
+      song.is_in_setlist 
+        ? 'bg-indigo-600 border-indigo-600' 
+        : 'bg-white border-gray-300 hover:border-indigo-500'
+    ]"
+  >
+    <svg 
+      class="w-3 h-3 text-white transition-opacity duration-200"
+      :class="{ 'opacity-0': !song.is_in_setlist }"
+      viewBox="0 0 20 20"
+      fill="currentColor"
+    >
+      <path 
+        fill-rule="evenodd" 
+        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" 
+        clip-rule="evenodd"
+      />
+    </svg>
+  </label>
+</div>
+
+<!-- For non-admin checkbox -->
+<div v-if="!isAdmin" class="relative flex items-center h-5">
+  <div 
+    class="w-5 h-5 border-2 rounded flex items-center justify-center
+           transition-all duration-200"
+    :class="[
+      song.is_in_setlist 
+        ? 'bg-indigo-600 border-indigo-600' 
+        : 'bg-white border-gray-300'
+    ]"
+  >
+    <svg 
+      class="w-3 h-3 text-white transition-opacity duration-200"
+      :class="{ 'opacity-0': !song.is_in_setlist }"
+      viewBox="0 0 20 20"
+      fill="currentColor"
+    >
+      <path 
+        fill-rule="evenodd" 
+        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" 
+        clip-rule="evenodd"
+      />
+    </svg>
+  </div>
+</div
 
       <!-- Platform Play Button -->
       <a 
@@ -155,3 +194,13 @@ const platformIcon = computed(() => {
   return null;
 });
 </script>
+
+<style scoped>
+.checkbox-container input:checked + label {
+  @apply bg-indigo-600 border-indigo-600;
+}
+
+input:focus + label {
+  @apply ring-2 ring-offset-2 ring-indigo-500;
+}
+</style>
