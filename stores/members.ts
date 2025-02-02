@@ -10,7 +10,7 @@ interface MemberWithPlaylist extends BandMember {
 }
 
 export const useMembersStore = defineStore('members', () => {
-  // State to store all members and their playlists
+  // State
   const members = ref<MemberWithPlaylist[]>([]);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
@@ -40,10 +40,39 @@ export const useMembersStore = defineStore('members', () => {
     }
   }
 
+  // Update member background color
+  async function updateMemberBackgroundColor(memberId: string, color: string) {
+    try {
+      const { data, error: updateError } = await supabase
+        .from('band_members')
+        .update({ background_color: color })
+        .eq('id', memberId)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+
+      // Update the local state
+      const memberIndex = members.value.findIndex(m => m.id === memberId);
+      if (memberIndex !== -1 && data) {
+        members.value[memberIndex] = {
+          ...members.value[memberIndex],
+          background_color: data.background_color
+        };
+      }
+
+      return data;
+    } catch (e: any) {
+      error.value = e.message;
+      throw e;
+    }
+  }
+
   return {
     members,
     isLoading,
     error,
-    fetchMembersWithPlaylists
+    fetchMembersWithPlaylists,
+    updateMemberBackgroundColor
   };
 });

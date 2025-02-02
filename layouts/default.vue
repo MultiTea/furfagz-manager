@@ -169,35 +169,47 @@
 import { ref, onMounted, watch } from 'vue';
 import type { Database } from '~/types/supabase';
 
-// Get route for active link highlighting
 const route = useRoute();
 
-// Authentication and user management
 const user = useSupabaseUser();
 const supabase = useSupabaseClient<Database>();
 const router = useRouter();
 
-// State for menus
 const isProfileMenuOpen = ref(false);
 const isMobileMenuOpen = ref(false);
-
-// Store band member information including role
 const bandMember = ref<Database['public']['Tables']['band_members']['Row'] | null>(null);
 
-// Fetch band member details when user is authenticated
-watch(user, async (newUser) => {
-  if (newUser) {
+// Fetch band member details
+async function fetchBandMember() {
+  if (user.value) {
     const { data } = await supabase
       .from('band_members')
       .select('*')
-      .eq('id', newUser.id)
+      .eq('id', user.value.id)
       .single();
     
     bandMember.value = data;
   } else {
     bandMember.value = null;
   }
+}
+
+// Watch for user changes
+watch(user, async (newUser) => {
+  if (newUser) {
+    await fetchBandMember();
+  } else {
+    bandMember.value = null;
+  }
 }, { immediate: true });
+
+// Watch for route changes to refresh member data
+// This ensures we have fresh data after profile updates
+watch(route, async () => {
+  if (user.value) {
+    await fetchBandMember();
+  }
+});
 
 // Handle user logout
 const handleLogout = async () => {
@@ -211,7 +223,7 @@ const handleLogout = async () => {
   }
 };
 
-// Close mobile menu on route change
+// Watch route changes to close mobile menu
 watch(route, () => {
   isMobileMenuOpen.value = false;
 });
@@ -220,7 +232,6 @@ watch(route, () => {
 onMounted(() => {
   document.addEventListener('click', (event) => {
     const target = event.target as HTMLElement;
-    // Only close profile menu if clicking outside both menus
     if (!target.closest('.relative') && !target.closest('button')) {
       isProfileMenuOpen.value = false;
     }

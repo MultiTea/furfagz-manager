@@ -1,30 +1,51 @@
 // components/ProfileImageUpload.vue
 <template>
   <div class="space-y-4">
-    <!-- Current Profile Image Display -->
     <div class="flex items-center space-x-4">
       <div class="relative w-24 h-24">
-        <img
-          v-if="currentImageUrl"
-          :src="currentImageUrl"
-          alt="Profile"
-          class="w-full h-full object-cover rounded-full"
-        />
+        <!-- Image or placeholder with loading state -->
+        <template v-if="currentImageUrl">
+          <img
+            :src="currentImageUrl"
+            alt="Profile"
+            class="w-full h-full object-cover rounded-full"
+            @load="handleImageLoad"
+          />
+        </template>
         <div 
           v-else
           class="w-full h-full bg-gray-200 rounded-full flex items-center justify-center"
         >
-          <span class="text-gray-500 text-xl">{{ initials }}</span>
+          <template v-if="isUploading">
+            <svg class="animate-spin h-8 w-8 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </template>
+          <span v-else class="text-gray-500 text-xl">{{ initials }}</span>
         </div>
         
+        <!-- Loading overlay for existing image -->
         <div 
-          v-if="isLoading"
+          v-if="isLoading && currentImageUrl"
           class="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center"
         >
           <svg class="animate-spin h-8 w-8 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
+        </div>
+
+        <!-- File preview if available -->
+        <div 
+          v-if="previewUrl && !currentImageUrl"
+          class="absolute inset-0"
+        >
+          <img
+            :src="previewUrl"
+            alt="Preview"
+            class="w-full h-full object-cover rounded-full"
+          />
         </div>
       </div>
       
@@ -41,7 +62,7 @@
           <BaseButton
             type="button"
             @click="$refs.fileInput.click()"
-            :disabled="isLoading"
+            :disabled="isLoading || isUploading"
             :text="currentImageUrl ? 'Change Image' : 'Select Image'"
           />
 
@@ -49,7 +70,7 @@
             v-if="currentImageUrl"
             type="button"
             @click="handleRemoveImage"
-            :disabled="isLoading"
+            :disabled="isLoading || isUploading"
             variant="secondary"
             text="Remove Image"
           />
@@ -57,7 +78,7 @@
       </div>
     </div>
     
-    <!-- Selected File Name -->
+    <!-- Selected file name -->
     <div v-if="selectedFileName" class="text-sm text-gray-600">
       Selected file: {{ selectedFileName }}
     </div>
@@ -73,6 +94,7 @@ import { ref, computed } from 'vue'
 import type { Database } from '~/types/supabase'
 import { useImageColor } from '~/composables/useImageColor'
 import { useLoadingState } from '~/composables/useLoadingState'
+import { useMembersStore } from '~/stores/members'
 
 const props = defineProps<{
   currentImageUrl: string | null
@@ -86,11 +108,14 @@ const emit = defineEmits<{
 const supabase = useSupabaseClient<Database>()
 const user = useSupabaseUser()
 const { isLoading, error, withLoading } = useLoadingState()
+const { getMedianColor } = useImageColor()
+const membersStore = useMembersStore()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const selectedFileName = ref<string | null>(null)
+const isUploading = ref(false)
+const previewUrl = ref<string | null>(null)
 
-// Compute initials for avatar placeholder
 const initials = computed(() => {
   return props.username
     .split(' ')
@@ -100,7 +125,18 @@ const initials = computed(() => {
     .slice(0, 2)
 })
 
-// Handle file selection and upload
+async function handleImageLoad(event: Event) {
+  const img = event.target as HTMLImageElement
+  if (img.src) {
+    try {
+      const newColor = await getMedianColor(img.src)
+      await membersStore.updateMemberBackgroundColor(user.value?.id || '', newColor)
+    } catch (error) {
+      throw error
+    }
+  }
+}
+
 async function handleFileSelect(event: Event) {
   const input = event.target as HTMLInputElement
   if (!input.files?.length) return
@@ -111,10 +147,13 @@ async function handleFileSelect(event: Event) {
 
   const file = input.files[0]
   selectedFileName.value = file.name
+  isUploading.value = true
+
+  // Create preview
+  previewUrl.value = URL.createObjectURL(file)
 
   try {
     await withLoading(async () => {
-      // Validate file
       if (file.size > 5 * 1024 * 1024) {
         throw new Error('Image must be less than 5MB')
       }
@@ -122,11 +161,9 @@ async function handleFileSelect(event: Event) {
         throw new Error('Selected file must be an image')
       }
 
-      // Create file path
       const fileExt = file.name.split('.').pop()
       const fileName = `profile/${user.value.id}/${Date.now()}.${fileExt}`
 
-      // Upload file
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('profile-images')
         .upload(fileName, file, {
@@ -136,13 +173,13 @@ async function handleFileSelect(event: Event) {
 
       if (uploadError) throw uploadError
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('profile-images')
         .getPublicUrl(fileName)
 
       emit('update:image', publicUrl)
       selectedFileName.value = null
+      previewUrl.value = null
     })
   } catch (e: any) {
     error.value = e.message
@@ -150,16 +187,15 @@ async function handleFileSelect(event: Event) {
     if (fileInput.value) {
       fileInput.value.value = ''
     }
+    isUploading.value = false
   }
 }
 
-// Handle image removal
 async function handleRemoveImage() {
   if (!props.currentImageUrl || !user.value?.id) return
 
   try {
     await withLoading(async () => {
-      // Ensure currentImageUrl is not null before proceeding
       if (!props.currentImageUrl) {
         throw new Error('No image URL provided')
       }
@@ -174,17 +210,26 @@ async function handleRemoveImage() {
         .remove([pathParts])
 
       if (deleteError) throw deleteError
+
+      await membersStore.updateMemberBackgroundColor(
+        user.value?.id || '', 
+        'rgb(249, 250, 251)'
+      )
+
       emit('update:image', null)
+      previewUrl.value = null
     })
   } catch (e: any) {
     error.value = e.message
   }
 }
 
-// Clean up on component unmount
 onBeforeUnmount(() => {
   if (fileInput.value) {
     fileInput.value.value = ''
+  }
+  if (previewUrl.value) {
+    URL.revokeObjectURL(previewUrl.value)
   }
 })
 </script>

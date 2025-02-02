@@ -1,10 +1,10 @@
+// components/MemberHeader.vue
 <template>
   <div
     class="px-4 py-5 sm:px-6 transition-colors duration-300"
     :style="{ backgroundColor: bgColor }"
   >
     <div class="flex items-center space-x-4">
-      <!-- Avatar -->
       <div class="w-16 h-16 rounded-full overflow-hidden flex-shrink-0">
         <img
           v-if="member.avatar_url"
@@ -12,6 +12,7 @@
           :alt="member.username"
           class="w-full h-full object-cover"
           @load="handleImageLoad"
+          crossorigin="anonymous"
         />
         <div
           v-else
@@ -23,7 +24,6 @@
         </div>
       </div>
 
-      <!-- Member Info -->
       <div class="flex-1 min-w-0">
         <h3 
           class="text-lg font-semibold truncate"
@@ -38,7 +38,6 @@
           {{ member.band_role }}
         </p>
         
-        <!-- Platform Links -->
         <div v-if="member.band_role" class="mt-2 flex space-x-2">
           <a 
             v-if="member.spotify_playlist"
@@ -61,27 +60,12 @@
         </div>
       </div>
 
-      <!-- Stats Badge -->
       <div class="flex-shrink-0">
         <span 
           class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-xs font-medium"
           :class="badgeColorClass"
         >
-          <svg 
-            xmlns="http://www.w3.org/2000/svg" 
-            class="h-3.5 w-3.5"
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
-          >
-            <path 
-              stroke-linecap="round" 
-              stroke-linejoin="round" 
-              stroke-width="2" 
-              d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" 
-            />
-          </svg>
-          {{ selectedCount }} selected
+          {{ selectedCount }}
         </span>
       </div>
     </div>
@@ -89,9 +73,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import type { Database } from '~/types/supabase';
 import { useImageColor } from '~/composables/useImageColor';
+import { useMembersStore } from '~/stores/members';
 
 type BandMember = Database['public']['Tables']['band_members']['Row'];
 
@@ -102,10 +87,11 @@ const props = defineProps<{
 
 const supabase = useSupabaseClient<Database>();
 const { getMedianColor } = useImageColor();
-const bgColor = ref(props.member.background_color || 'rgb(249, 250, 251)'); // Use stored color or default
+const membersStore = useMembersStore();
+
+const bgColor = ref(props.member.background_color || 'rgb(249, 250, 251)');
 const isDarkBackground = ref(false);
 
-// Calculate relative luminance
 function getLuminance(r: number, g: number, b: number): number {
   const [rs, gs, bs] = [r, g, b].map(c => {
     c = c / 255;
@@ -114,7 +100,6 @@ function getLuminance(r: number, g: number, b: number): number {
   return 0.2126 * rs + 0.7152 * gs + 0.0722 * bs;
 }
 
-// Check if background is dark
 function checkIsDarkBackground(color: string) {
   const rgb = color.match(/\d+/g);
   if (!rgb || rgb.length < 3) return false;
@@ -128,36 +113,45 @@ function checkIsDarkBackground(color: string) {
   return luminance < 0.5;
 }
 
-// Save the background color to the database
 async function saveBackgroundColor(color: string) {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('band_members')
-      .update({ background_color: color })
-      .eq('id', props.member.id);
+      .update({ 
+        background_color: color,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', props.member.id)
+      .select()
+      .single();
 
-    if (error) {
-      console.error('Error saving background color:', error);
-    }
+    if (error) throw error;
+
+    bgColor.value = color;    
+    await membersStore.fetchMembersWithPlaylists();
+
+    return data;
   } catch (error) {
-    console.error('Error saving background color:', error);
+    throw error;
   }
 }
 
-// Update background color and calculate text colors
-const handleImageLoad = async () => {
-  if (props.member.avatar_url) {
-    // If we don't have a stored color, calculate and save it
-    if (!props.member.background_color) {
-      const newColor = await getMedianColor(props.member.avatar_url);
-      bgColor.value = newColor;
+const handleImageLoad = async (event: Event) => {
+  const img = event.target as HTMLImageElement;
+  
+  try {
+    const newColor = await getMedianColor(img.src);
+
+    if (newColor !== props.member.background_color) {
       await saveBackgroundColor(newColor);
     }
-    isDarkBackground.value = checkIsDarkBackground(bgColor.value);
+
+    isDarkBackground.value = checkIsDarkBackground(newColor);
+  } catch (error) {
+    throw error;
   }
 };
 
-// Computed classes for text colors
 const textColorClass = computed(() => ({
   'text-white': isDarkBackground.value,
   'text-gray-900': !isDarkBackground.value,
