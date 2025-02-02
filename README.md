@@ -1,7 +1,6 @@
 # Furfagz Band Manager
 
 Even though having a music band is great, only the "**playing on stage**" part is fun. The rest is kind of a hassle : creating setlists, scheduling rehearsals, managing the budget, organize and give informations to FH... So, what better than creating a web app to help us out organizing and managing most of it? Introducing **Furfagz Band Manager**!
-A web application built with Nuxt 3 for managing band playlists, setlists, and member profiles. This application helps band members collaborate on song suggestions and organize their performance setlists.
 
 ## Features
 
