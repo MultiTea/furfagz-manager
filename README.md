@@ -1,75 +1,111 @@
-# Nuxt Minimal Starter
+# Furfagz Band Manager
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Even though having a music band is great, only the "**playing on stage**" part is fun. The rest is kind of a hassle : creating setlists, scheduling rehearsals, managing the budget, organize and give informations to FH... So, what better than creating a web app to help us out organizing and managing most of it? Introducing **Furfagz Band Manager**!
+A web application built with Nuxt 3 for managing band playlists, setlists, and member profiles. This application helps band members collaborate on song suggestions and organize their performance setlists.
 
-## Setup
+## Features
 
-Make sure to install dependencies:
+- **User Authentication**: Secure login and registration system using Supabase
+- **Personal Playlists**: Each band member can maintain their own playlist of song suggestions for the next performances by copy/pasting YouTube and Spotify links
+- **Setlist Management**: Admins can create and organize setlists from suggested songs with intuitive drag-and-drop interface for reordering
+- **Member Profiles**: Customizable profiles with avatars and role assignments, gear listing, stages needs and specificities
+- **Responsive Design**: Full mobile and desktop support using Tailwind CSS
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+- Node.js (Latest LTS version recommended)
+- npm or yarn
+- A Supabase account for database and authentication
+- API keys for YouTube and Spotify integration
+
+## Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_anon_key
+SPOTIFY_CLIENT_ID=your_spotify_client_id
+SPOTIFY_CLIENT_SECRET=your_spotify_client_secret
+YOUTUBE_API_KEY=your_youtube_api_key
+```
+
+## Installation
+
+1. Clone the repository:
 
 ```bash
-# npm
+git clone [repository-url]
+cd furfagz-manager
+```
+
+2. Install dependencies:
+
+```bash
 npm install
-
-# pnpm
-pnpm install
-
-# yarn
+# or
 yarn install
-
-# bun
-bun install
 ```
 
-## Development Server
-
-Start the development server on `http://localhost:3000`:
+3. Start the development server:
 
 ```bash
-# npm
 npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
+# or
 yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
-
-Build the application for production:
+4. Build for production:
 
 ```bash
-# npm
 npm run build
-
-# pnpm
-pnpm build
-
-# yarn
+# or
 yarn build
-
-# bun
-bun run build
 ```
 
-Locally preview production build:
+## Database Setup
 
-```bash
-# npm
-npm run preview
+This project uses Supabase as its database. You'll need to set up the following tables:
 
-# pnpm
-pnpm preview
+- `band_members`: Stores user profiles and roles
+- `playlist_songs`: Stores songs and their metadata, and manage setlists
 
-# yarn
-yarn preview
+Refer to the `types/supabase.ts` file for the complete database schema.
 
-# bun
-bun run preview
-```
+## Tech Stack
 
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+- **Framework**: Nuxt 3
+- **State Management**: Pinia
+- **Database**: Supabase
+- **Styling**: Tailwind CSS
+- **Authentication**: Supabase Auth
+- **API Integrations**: YouTube API, Spotify API
+- **Deployment**: Netlify
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Deployment
+
+The project is configured for deployment on Netlify. The `netlify.toml` file contains the necessary configuration.
+
+To deploy:
+
+1. Connect your repository to Netlify
+2. Configure environment variables in Netlify's dashboard
+3. Deploy using Netlify's continuous deployment
+
+## Support
+
+For support, please open an issue in the GitHub repository or contact the maintainers.
