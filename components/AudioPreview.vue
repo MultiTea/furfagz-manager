@@ -4,8 +4,7 @@
       class="audio-thumbnail"
       @mouseenter="startPreview"
       @mouseleave="stopPreview"
-      @touchstart.passive="handleTouch"
-      @click="togglePlayback"
+      @click="handleClick"
     >
       <slot></slot>
       
@@ -52,8 +51,6 @@ const isHovering = ref(false);
 const isPlaying = ref(false);
 const hasBeenPlayed = ref(false);
 const isMobile = ref(false);
-const touchTimeout = ref<number | null>(null);
-
 // Use our audio controller
 const { registerAudio } = useAudioController();
 
@@ -145,23 +142,8 @@ function stopPreview() {
   }
 }
 
-// Handle touch events for mobile
-function handleTouch(event: TouchEvent) {
-  if (!isMobile.value) return;
-  
-  // Prevent immediate response to allow for scrolling
-  if (touchTimeout.value) {
-    clearTimeout(touchTimeout.value);
-  }
-  
-  touchTimeout.value = window.setTimeout(() => {
-    // This is a tap, not a scroll - toggle playback
-    togglePlayback(event);
-  }, 100);
-}
-
-// Handler for mobile (click/tap)
-function togglePlayback(event: MouseEvent | TouchEvent) {
+// Simplified click handler for both desktop and mobile
+function handleClick(event: MouseEvent) {
   // Prevent click from propagating to parent elements
   event.stopPropagation();
   
@@ -174,13 +156,23 @@ function togglePlayback(event: MouseEvent | TouchEvent) {
     isPlaying.value = false;
   } else {
     // If not playing, start it (this will automatically stop others via the controller)
-    audioPlayer.value.play()
-      .then(() => {
-        hasBeenPlayed.value = true;
-      })
-      .catch(() => {
-        // Handle error silently
-      });
+    try {
+      const playPromise = audioPlayer.value.play();
+      
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            hasBeenPlayed.value = true;
+          })
+          .catch(() => {
+            // Reset playing state on error
+            isPlaying.value = false;
+          });
+      }
+    } catch (e) {
+      // Fallback for any synchronous errors
+      isPlaying.value = false;
+    }
   }
 }
 
@@ -199,9 +191,7 @@ onBeforeUnmount(() => {
     audioPlayer.value.src = '';
   }
   
-  if (touchTimeout.value) {
-    clearTimeout(touchTimeout.value);
-  }
+
 });
 </script>
 
