@@ -3,7 +3,7 @@
   <div class="space-y-4">
     <!-- Main Song Info -->
     <div class="flex items-center space-x-4">
-      <!-- Platform Play Button -->
+      <!-- Play Button -->
       <a 
         v-if="song.link"
         :href="song.link"
@@ -30,56 +30,31 @@
         />
       </a>
 
-      <!-- Thumbnail with Preview -->
-      <div class="shrink-0 relative">
-        <AudioPreview :preview-url="song.preview_url">
-          <img 
-            v-if="song.thumbnail_url" 
-            :src="song.thumbnail_url" 
-            :alt="song.title"
-            class="h-14 w-14 object-cover rounded-lg"
-          />
-          <div 
-            v-else 
-            class="h-14 w-14 bg-gray-100 rounded-lg flex items-center justify-center"
-          >
-            <svg 
-              class="h-7 w-7 text-gray-400" 
-              xmlns="http://www.w3.org/2000/svg" 
-              fill="none" 
-              viewBox="0 0 24 24" 
-              stroke="currentColor"
-            >
-              <path 
-                stroke-linecap="round" 
-                stroke-linejoin="round" 
-                stroke-width="2" 
-                d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" 
-              />
-            </svg>
-          </div>
-        </AudioPreview>
-
-        <!-- Overlay Preview Button for Spotify links without preview -->
-        <button 
-          v-if="isSpotifyLink && !song.preview_url && !isUpdatingPreview"
-          @click="fetchPreviewUrl"
-          class="absolute top-0 right-0 bg-green-600 rounded-full p-1 shadow-md transform translate-x-1/3 -translate-y-1/3"
-          title="Get audio preview"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5" />
-          </svg>
-        </button>
-
-        <!-- Loading indicator when updating preview -->
+      <!-- Thumbnail -->
+      <div class="shrink-0">
+        <img 
+          v-if="song.thumbnail_url" 
+          :src="song.thumbnail_url" 
+          :alt="song.title"
+          class="h-14 w-14 object-cover rounded-lg"
+        />
         <div 
-          v-if="isUpdatingPreview"
-          class="absolute top-0 right-0 bg-gray-800 bg-opacity-75 rounded-full p-1 shadow-md transform translate-x-1/3 -translate-y-1/3"
+          v-else 
+          class="h-14 w-14 bg-gray-100 rounded-lg flex items-center justify-center"
         >
-          <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          <svg 
+            class="h-7 w-7 text-gray-400" 
+            xmlns="http://www.w3.org/2000/svg" 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+          >
+            <path 
+              stroke-linecap="round" 
+              stroke-linejoin="round" 
+              stroke-width="2" 
+              d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" 
+            />
           </svg>
         </div>
       </div>
@@ -178,11 +153,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import type { Database } from '~/types/supabase';
 import { useFormatDuration } from '~/composables/useFormatDuration';
 import { usePlatformLink } from '~/composables/usePlatformLink';
-import AudioPreview from './AudioPreview.vue';
 
 type PlaylistSong = Database['public']['Tables']['playlist_songs']['Row'];
 
@@ -196,72 +170,11 @@ const emit = defineEmits<{
   (e: 'delete', song: PlaylistSong): void
 }>();
 
-const supabase = useSupabaseClient<Database>();
 const { formatDuration } = useFormatDuration();
 const { getPlatformInfo } = usePlatformLink();
 const isNotesVisible = ref(false);
-const isUpdatingPreview = ref(false);
 
 const platformInfo = computed(() => getPlatformInfo(props.song.link));
-
-// Check if the link is from Spotify
-const isSpotifyLink = computed(() => {
-  return props.song.link ? props.song.link.includes('spotify.com') : false;
-});
-
-// Function to extract Spotify track ID from a link
-function extractSpotifyTrackId(link: string): string | null {
-  const regex = /spotify\.com\/(?:intl-[a-z]+\/)?track\/([a-zA-Z0-9]{22})/;
-  const match = link.match(regex);
-  return match ? match[1] : null;
-}
-
-// Function to fetch preview URL from our API and update the song
-async function fetchPreviewUrl() {
-  if (!props.song.link || !isSpotifyLink.value) return;
-  
-  const trackId = extractSpotifyTrackId(props.song.link);
-  if (!trackId) {
-    console.error('Could not extract track ID from link:', props.song.link);
-    return;
-  }
-  
-  try {
-    isUpdatingPreview.value = true;
-    
-    // Fetch preview URL from our API
-    const response = await fetch(`/api/spotify/get-preview?trackId=${trackId}`);
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch preview: ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    
-    if (!data.previewUrl) {
-      console.warn('No preview URL found for track:', trackId);
-      return;
-    }
-    
-    // Update the song in the database
-    const { error } = await supabase
-      .from('playlist_songs')
-      .update({ preview_url: data.previewUrl })
-      .eq('id', props.song.id);
-    
-    if (error) {
-      throw error;
-    }
-    
-    // Update the song in the local state
-    props.song.preview_url = data.previewUrl;
-    
-  } catch (error) {
-    console.error('Error updating preview URL:', error);
-  } finally {
-    isUpdatingPreview.value = false;
-  }
-}
 
 const platformIcon = computed(() => {
   if (platformInfo.value.name === 'YouTube') {
@@ -292,18 +205,3 @@ const platformIcon = computed(() => {
   return null;
 });
 </script>
-
-<style scoped>
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-</style>

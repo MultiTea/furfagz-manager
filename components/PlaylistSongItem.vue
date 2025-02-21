@@ -3,7 +3,7 @@
     <!-- Main Song Info -->
     <div class="flex items-center space-x-4 me-4">
 
-<!-- Replace the current checkbox div with this: -->
+<!-- Checkbox for setlist -->
 <div v-if="isAdmin" class="relative flex items-center h-5">
   <input
     :id="'setlist-' + song.id"
@@ -61,7 +61,7 @@
       />
     </svg>
   </div>
-</div
+</div>
 
       <!-- Platform Play Button -->
       <a 
@@ -92,13 +92,14 @@
         />
       </a>
 
-<!-- Thumbnail with Preview -->
-<PreviewFetchButton 
+      <!-- Thumbnail with Preview and Preview Fetch Button -->
+      <PreviewFetchButton 
         :song="song"
         :is-admin="isAdmin" 
         @preview-updated="handlePreviewUpdated"
+        @spotify-link-added="handleSpotifyLinkAdded"
       >
-        <AudioPreview :preview-url="song.preview_url">
+        <AudioPreview :preview-url="song.preview_url" :preview-id="'playlist-' + song.id">
           <img 
             v-if="song.thumbnail_url" 
             :src="song.thumbnail_url" 
@@ -127,6 +128,7 @@
         </AudioPreview>
       </PreviewFetchButton>
 
+
       <!-- Song Info -->
       <div class="flex-1 min-w-0">
         <h4 class="text-lg font-semibold text-gray-900">{{ song.title }}</h4>
@@ -149,13 +151,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import type { Database } from '~/types/supabase';
 import { useFormatDuration } from '~/composables/useFormatDuration';
 import { usePlatformLink } from '~/composables/usePlatformLink';
+import { useAdmin } from '~/composables/useAdmin';
 import AudioPreview from '~/components/AudioPreview.vue';
-import PreviewFetchButton from './PreviewFetchButton.vue';
-
+import PreviewFetchButton from '~/components/PreviewFetchButton.vue';
 
 type PlaylistSong = Database['public']['Tables']['playlist_songs']['Row'];
 
@@ -176,19 +178,41 @@ const { getPlatformInfo } = usePlatformLink();
 const { isAdmin, checkAdminStatus } = useAdmin();
 const isNotesVisible = ref(false);
 
+// Make sure admin status is checked immediately
+checkAdminStatus();
+
 const platformInfo = computed(() => getPlatformInfo(props.song.link));
 
-// Check admin status when component is mounted
+// Debug output when component mounts
 onMounted(async () => {
   await checkAdminStatus();
+  console.log('PlaylistSongItem mounted for song:', props.song.title);
+  console.log('Link:', props.song.link);
+  console.log('Preview URL:', props.song.preview_url);
+  console.log('Is admin (after check):', isAdmin.value);
 });
 
 // Handle preview update
-function handlePreviewUpdated(success: boolean) {
+function handlePreviewUpdated(success: boolean, data?: { previewUrl?: string, thumbnailUrl?: string }) {
   if (success) {
-    // Optional: Show success notification or update UI
-    console.log('Preview updated successfully');
+    console.log('Preview updated successfully for song:', props.song.title);
+    
+    // Update local song data without triggering audio playback
+    if (data?.previewUrl) {
+      props.song.preview_url = data.previewUrl;
+    }
+    
+    if (data?.thumbnailUrl && !props.song.thumbnail_url) {
+      props.song.thumbnail_url = data.thumbnailUrl;
+    }
+    
+    emit('preview-updated', true);
   }
+}
+
+// Handle when a Spotify link is found
+function handleSpotifyLinkAdded(spotifyUrl: string) {
+  console.log('Spotify link found for song:', props.song.title, '- Link:', spotifyUrl);
 }
 
 const platformIcon = computed(() => {

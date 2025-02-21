@@ -1,28 +1,25 @@
-// components/AudioPreview.vue
 <template>
   <div class="relative">
     <div 
       class="audio-thumbnail"
       @mouseenter="startPreview"
       @mouseleave="stopPreview"
+      @click="togglePlayback"
     >
       <slot></slot>
       
-      <!-- Preview Indicator -->
+      <!-- Preview Indicator - Only show during active hover or actual playback -->
       <div 
-        v-if="previewUrl && isHovering" 
+        v-if="previewUrl && ((isHovering && !hasBeenPlayed) || isPlaying)" 
         class="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center transition-opacity duration-200 rounded-lg"
       >
         <div class="text-white">
-          <svg 
-            v-if="!isPlaying" 
-            class="w-8 h-8" 
-            fill="currentColor" 
-            viewBox="0 0 20 20"
-          >
-            <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" />
-          </svg>
-          <div v-else class="audio-wave">
+          <!-- Play Icon - only on hover before played -->
+          <div v-if="isHovering && !isPlaying" class="play-icon">
+            <div class="play-triangle"></div>
+          </div>
+          <!-- Audio Wave Animation When Playing -->
+          <div v-if="isPlaying" class="audio-wave">
             <span></span>
             <span></span>
             <span></span>
@@ -33,31 +30,110 @@
     </div>
     
     <!-- Audio Element (hidden) -->
-    <audio ref="audioPlayer" :src="previewUrl || undefined" preload="none"></audio>
+    <audio ref="audioPlayer" :src="previewUrl || undefined" preload="auto"></audio>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onBeforeUnmount } from 'vue';
+import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue';
+import { useAudioController } from '~/composables/useAudioController';
 
 const props = defineProps<{
   previewUrl: string | null | undefined;
+  previewId?: string; // Unique identifier for this preview
 }>();
+
+// Generate a unique ID if not provided
+const uniqueId = computed(() => props.previewId || `preview-${Math.random().toString(36).substring(2, 9)}`);
 
 const audioPlayer = ref<HTMLAudioElement | null>(null);
 const isHovering = ref(false);
 const isPlaying = ref(false);
+const hasBeenPlayed = ref(false);
 
+// Use our audio controller
+const { registerAudio } = useAudioController();
+
+// Initialize audio and register with controller when the component is mounted
+onMounted(() => {
+  if (audioPlayer.value && props.previewUrl) {
+    // Set initial volume
+    audioPlayer.value.volume = 0.7;
+    
+    // Register with audio controller
+    const { isActive } = registerAudio(audioPlayer.value, uniqueId.value);
+    
+    // Add event listeners for play/ended states
+    audioPlayer.value.addEventListener('play', () => {
+      isPlaying.value = true;
+    });
+    
+    audioPlayer.value.addEventListener('ended', () => {
+      isPlaying.value = false;
+      isHovering.value = false;
+    });
+    
+    audioPlayer.value.addEventListener('pause', () => {
+      isPlaying.value = false;
+    });
+    
+    // Preload metadata
+    audioPlayer.value.load();
+  }
+});
+
+// Watch for changes in the preview URL
+watch(() => props.previewUrl, (newUrl) => {
+  if (newUrl && audioPlayer.value) {
+    // Reload audio when URL changes
+    audioPlayer.value.load();
+  }
+});
+
+// Handle for desktop (hover)
 function startPreview() {
   if (!props.previewUrl) return;
   
   isHovering.value = true;
   
-  if (audioPlayer.value) {
-    audioPlayer.value.volume = 0.7;
+  if (audioPlayer.value && !isPlaying.value) {
     audioPlayer.value.play()
       .then(() => {
-        isPlaying.value = true;
+        hasBeenPlayed.value = true;
+      })
+      .catch(error => {
+        console.error('Error playing audio preview:', error);
+        isPlaying.value = false;
+      });
+  }
+}
+
+function stopPreview() {
+  isHovering.value = false;
+  
+  if (audioPlayer.value && isPlaying.value) {
+    audioPlayer.value.pause();
+    audioPlayer.value.currentTime = 0;
+  }
+}
+
+// Handler for mobile (click/tap)
+function togglePlayback(event: MouseEvent) {
+  // Prevent click from propagating to parent elements
+  event.stopPropagation();
+  
+  if (!props.previewUrl || !audioPlayer.value) return;
+
+  if (isPlaying.value) {
+    // If already playing, stop it
+    audioPlayer.value.pause();
+    audioPlayer.value.currentTime = 0;
+    isPlaying.value = false;
+  } else {
+    // If not playing, start it (this will automatically stop others via the controller)
+    audioPlayer.value.play()
+      .then(() => {
+        hasBeenPlayed.value = true;
       })
       .catch(error => {
         console.error('Error playing audio preview:', error);
@@ -65,19 +141,16 @@ function startPreview() {
   }
 }
 
-function stopPreview() {
-  isHovering.value = false;
-  isPlaying.value = false;
-  
-  if (audioPlayer.value) {
-    audioPlayer.value.pause();
-    audioPlayer.value.currentTime = 0;
-  }
-}
-
 // Clean up on component unmount
 onBeforeUnmount(() => {
   if (audioPlayer.value) {
+    audioPlayer.value.removeEventListener('play', () => isPlaying.value = true);
+    audioPlayer.value.removeEventListener('ended', () => {
+      isPlaying.value = false;
+      isHovering.value = false;
+    });
+    audioPlayer.value.removeEventListener('pause', () => isPlaying.value = false);
+    
     audioPlayer.value.pause();
     audioPlayer.value.src = '';
   }
@@ -112,6 +185,25 @@ onBeforeUnmount(() => {
 
 .audio-wave span:nth-child(4) {
   animation-delay: 0.6s;
+}
+
+/* Play button styles */
+.play-icon {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.play-triangle {
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 10px 0 10px 18px;
+  border-color: transparent transparent transparent white;
+  margin-left: 4px; /* Centering adjustment */
 }
 
 @keyframes wave {
