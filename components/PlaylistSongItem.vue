@@ -3,65 +3,65 @@
     <!-- Main Song Info -->
     <div class="flex items-center space-x-4 me-4">
 
-<!-- Checkbox for setlist -->
-<div v-if="isAdmin" class="relative flex items-center h-5">
-  <input
-    :id="'setlist-' + song.id"
-    :checked="song.is_in_setlist"
-    @change="$emit('setlist-toggle', song)"
-    type="checkbox"
-    class="sr-only"
-  >
-  <label 
-    :for="'setlist-' + song.id"
-    class="relative w-5 h-5 cursor-pointer border-2 rounded 
-           flex items-center justify-center transition-all duration-200"
-    :class="[
-      song.is_in_setlist 
-        ? 'bg-indigo-600 border-indigo-600' 
-        : 'bg-white border-gray-300 hover:border-indigo-500'
-    ]"
-  >
-    <svg 
-      class="w-3 h-3 text-white transition-opacity duration-200"
-      :class="{ 'opacity-0': !song.is_in_setlist }"
-      viewBox="0 0 20 20"
-      fill="currentColor"
-    >
-      <path 
-        fill-rule="evenodd" 
-        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" 
-        clip-rule="evenodd"
-      />
-    </svg>
-  </label>
-</div>
+      <!-- Checkbox for setlist -->
+      <div v-if="isAdmin" class="relative flex items-center h-5">
+        <input
+          :id="'setlist-' + song.id"
+          :checked="song.is_in_setlist"
+          @change="$emit('setlist-toggle', song)"
+          type="checkbox"
+          class="sr-only"
+        >
+        <label 
+          :for="'setlist-' + song.id"
+          class="relative w-5 h-5 cursor-pointer border-2 rounded 
+                flex items-center justify-center transition-all duration-200"
+          :class="[
+            song.is_in_setlist 
+              ? 'bg-indigo-600 border-indigo-600' 
+              : 'bg-white border-gray-300 hover:border-indigo-500'
+          ]"
+        >
+          <svg 
+            class="w-3 h-3 text-white transition-opacity duration-200"
+            :class="{ 'opacity-0': !song.is_in_setlist }"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path 
+              fill-rule="evenodd" 
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" 
+              clip-rule="evenodd"
+            />
+          </svg>
+        </label>
+      </div>
 
-<!-- For non-admin checkbox -->
-<div v-if="!isAdmin" class="relative flex items-center h-5">
-  <div 
-    class="w-5 h-5 border-2 rounded flex items-center justify-center
-           transition-all duration-200"
-    :class="[
-      song.is_in_setlist 
-        ? 'bg-indigo-600 border-indigo-600' 
-        : 'bg-white border-gray-300'
-    ]"
-  >
-    <svg 
-      class="w-3 h-3 text-white transition-opacity duration-200"
-      :class="{ 'opacity-0': !song.is_in_setlist }"
-      viewBox="0 0 20 20"
-      fill="currentColor"
-    >
-      <path 
-        fill-rule="evenodd" 
-        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" 
-        clip-rule="evenodd"
-      />
-    </svg>
-  </div>
-</div>
+      <!-- For non-admin checkbox -->
+      <div v-if="!isAdmin" class="relative flex items-center h-5">
+        <div 
+          class="w-5 h-5 border-2 rounded flex items-center justify-center
+                transition-all duration-200"
+          :class="[
+            song.is_in_setlist 
+              ? 'bg-indigo-600 border-indigo-600' 
+              : 'bg-white border-gray-300'
+          ]"
+        >
+          <svg 
+            class="w-3 h-3 text-white transition-opacity duration-200"
+            :class="{ 'opacity-0': !song.is_in_setlist }"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path 
+              fill-rule="evenodd" 
+              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" 
+              clip-rule="evenodd"
+            />
+          </svg>
+        </div>
+      </div>
 
       <!-- Platform Play Button -->
       <a 
@@ -92,22 +92,52 @@
         />
       </a>
 
-      <!-- Thumbnail with Preview and Preview Fetch Button -->
-      <PreviewFetchButton 
-        :song="song"
-        :is-admin="isAdmin" 
-        @preview-updated="handlePreviewUpdated"
-        @spotify-link-added="handleSpotifyLinkAdded"
-      >
-        <AudioPreview :preview-url="song.preview_url" :preview-id="'playlist-' + song.id">
-          <img 
-            v-if="song.thumbnail_url" 
-            :src="song.thumbnail_url" 
-            :alt="song.title"
-            class="h-14 w-14 object-cover rounded-lg"
-          />
+      <!-- Thumbnail with Preview -->
+      <div class="relative">
+        <!-- Only lazy load and render the AudioPreview when needed or visible -->
+        <template v-if="shouldRenderPreview || isVisible">
+          <PreviewFetchButton 
+            :song="song"
+            :is-admin="isAdmin" 
+            @preview-updated="handlePreviewUpdated"
+            @spotify-link-added="handleSpotifyLinkAdded"
+          >
+            <AudioPreview :preview-url="song.preview_url" :preview-id="'playlist-' + song.id">
+              <img 
+                v-if="song.thumbnail_url" 
+                :src="song.thumbnail_url" 
+                :alt="song.title"
+                loading="lazy"
+                class="h-14 w-14 object-cover rounded-lg"
+                @load="imageLoaded = true"
+              />
+              <div 
+                v-else 
+                class="h-14 w-14 bg-gray-100 rounded-lg flex items-center justify-center"
+              >
+                <svg 
+                  class="h-7 w-7 text-gray-400" 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path 
+                    stroke-linecap="round" 
+                    stroke-linejoin="round" 
+                    stroke-width="2" 
+                    d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" 
+                  />
+                </svg>
+              </div>
+            </AudioPreview>
+          </PreviewFetchButton>
+        </template>
+        
+        <!-- Placeholder while not visible/loaded -->
+        <template v-else>
           <div 
-            v-else 
+            ref="observerTarget"
             class="h-14 w-14 bg-gray-100 rounded-lg flex items-center justify-center"
           >
             <svg 
@@ -125,9 +155,8 @@
               />
             </svg>
           </div>
-        </AudioPreview>
-      </PreviewFetchButton>
-
+        </template>
+      </div>
 
       <!-- Song Info -->
       <div class="flex-1 min-w-0">
@@ -151,11 +180,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue';
 import type { Database } from '~/types/supabase';
 import { useFormatDuration } from '~/composables/useFormatDuration';
 import { usePlatformLink } from '~/composables/usePlatformLink';
-import { useAdmin } from '~/composables/useAdmin';
 import AudioPreview from '~/components/AudioPreview.vue';
 import PreviewFetchButton from '~/components/PreviewFetchButton.vue';
 
@@ -164,6 +192,7 @@ type PlaylistSong = Database['public']['Tables']['playlist_songs']['Row'];
 const props = defineProps<{
   song: PlaylistSong
   showActions?: boolean
+  isAdmin: boolean  // Accept isAdmin as a prop instead of using the composable
 }>();
 
 const emit = defineEmits<{
@@ -175,17 +204,56 @@ const emit = defineEmits<{
 
 const { formatDuration } = useFormatDuration();
 const { getPlatformInfo } = usePlatformLink();
-const { isAdmin, checkAdminStatus } = useAdmin();
 const isNotesVisible = ref(false);
 
-// Make sure admin status is checked immediately
-checkAdminStatus();
+// Lazy loading state
+const isVisible = ref(false);
+const shouldRenderPreview = ref(false);
+const imageLoaded = ref(false);
+const observerTarget = ref<HTMLElement | null>(null);
+let observer: IntersectionObserver | null = null;
 
 const platformInfo = computed(() => getPlatformInfo(props.song.link));
 
-// Debug output when component mounts
-onMounted(async () => {
-  await checkAdminStatus();
+// Initialize intersection observer for lazy loading
+onMounted(() => {
+  // Always render preview if it has already been played before
+  if (process.client && localStorage.getItem(`preview-played-${props.song.id}`)) {
+    shouldRenderPreview.value = true;
+    return;
+  }
+  
+  // Set up intersection observer for lazy loading
+  if (process.client && 'IntersectionObserver' in window && observerTarget.value) {
+    observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        isVisible.value = true;
+        
+        // Once visible, no need to observe anymore
+        if (observer && observerTarget.value) {
+          observer.unobserve(observerTarget.value);
+          observer = null;
+        }
+      }
+    }, {
+      root: null,
+      rootMargin: '100px', // Load when within 100px of viewport
+      threshold: 0.1
+    });
+    
+    observer.observe(observerTarget.value);
+  } else {
+    // Fallback for browsers without intersection observer
+    isVisible.value = true;
+  }
+});
+
+// Cleanup observer
+onBeforeUnmount(() => {
+  if (observer && observerTarget.value) {
+    observer.unobserve(observerTarget.value);
+    observer = null;
+  }
 });
 
 // Handle preview update
@@ -200,13 +268,19 @@ function handlePreviewUpdated(success: boolean, data?: { previewUrl?: string, th
       props.song.thumbnail_url = data.thumbnailUrl;
     }
     
+    // Mark this preview as having been played
+    if (process.client) {
+      localStorage.setItem(`preview-played-${props.song.id}`, 'true');
+    }
+    shouldRenderPreview.value = true;
+    
     emit('preview-updated', true);
   }
 }
 
 // Handle when a Spotify link is found
 function handleSpotifyLinkAdded(spotifyUrl: string) {
-  // Empty implementation - can be expanded if needed
+  // Empty implementation
 }
 
 const platformIcon = computed(() => {

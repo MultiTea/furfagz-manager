@@ -26,8 +26,7 @@
               v-for="song in sortedSongs(member.playlist_songs)"
               :key="song.id"
               :song="song"
-              :is-admin="isAdmin"
-              :added-by="getMemberName(song.member_id)"
+              :is-admin="userIsAdmin"
               @setlist-toggle="handleSetlistToggle"
             />
           </div>
@@ -61,6 +60,9 @@ type PlaylistSong = Database['public']['Tables']['playlist_songs']['Row'];
 const { isLoading, error, withLoading } = useLoadingState();
 const { checkAuthAndRedirect } = useSupabaseAuth();
 const { isAdmin, checkAdminStatus } = useAdmin();
+
+// Store admin status locally to avoid passing the reactive reference to multiple components
+const userIsAdmin = ref(false);
 
 const playlistStore = usePlaylistStore();
 const membersStore = useMembersStore();
@@ -105,7 +107,7 @@ const getSelectedSongsCount = (songs: PlaylistSong[]) => {
 };
 
 const handleSetlistToggle = async (song: PlaylistSong) => {
-  if (!isAdmin.value) return;
+  if (!userIsAdmin.value) return;
   
   try {
     await playlistStore.toggleSongInSetlist(song.id, !song.is_in_setlist);
@@ -118,10 +120,12 @@ const handleSetlistToggle = async (song: PlaylistSong) => {
 onMounted(async () => {
   if (checkAuthAndRedirect()) {
     await withLoading(async () => {
-      await Promise.all([
-        checkAdminStatus(),
-        membersStore.fetchMembersWithPlaylists()
-      ]);
+      // First check admin status once
+      const isUserAdmin = await checkAdminStatus();
+      userIsAdmin.value = isUserAdmin;
+      
+      // Then fetch data
+      await membersStore.fetchMembersWithPlaylists();
     });
   }
 });
