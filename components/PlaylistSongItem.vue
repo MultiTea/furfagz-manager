@@ -184,18 +184,18 @@ checkAdminStatus();
 const platformInfo = computed(() => getPlatformInfo(props.song.link));
 
 // Debug output when component mounts
-onMounted(async () => {
-  await checkAdminStatus();
-  console.log('PlaylistSongItem mounted for song:', props.song.title);
-  console.log('Link:', props.song.link);
-  console.log('Preview URL:', props.song.preview_url);
-  console.log('Is admin (after check):', isAdmin.value);
-});
+// onMounted(async () => {
+//   await checkAdminStatus();
+//   console.log('PlaylistSongItem mounted for song:', props.song.title);
+//   console.log('Link:', props.song.link);
+//   console.log('Preview URL:', props.song.preview_url);
+//   console.log('Is admin (after check):', isAdmin.value);
+// });
 
 // Handle preview update
 function handlePreviewUpdated(success: boolean, data?: { previewUrl?: string, thumbnailUrl?: string }) {
   if (success) {
-    console.log('Preview updated successfully for song:', props.song.title);
+    // console.log('Preview updated successfully for song:', props.song.title);
     
     // Update local song data without triggering audio playback
     if (data?.previewUrl) {
@@ -212,7 +212,7 @@ function handlePreviewUpdated(success: boolean, data?: { previewUrl?: string, th
 
 // Handle when a Spotify link is found
 function handleSpotifyLinkAdded(spotifyUrl: string) {
-  console.log('Spotify link found for song:', props.song.title, '- Link:', spotifyUrl);
+  // console.log('Spotify link found for song:', props.song.title, '- Link:', spotifyUrl);
 }
 
 const platformIcon = computed(() => {

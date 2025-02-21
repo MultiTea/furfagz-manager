@@ -4,6 +4,7 @@
       class="audio-thumbnail"
       @mouseenter="startPreview"
       @mouseleave="stopPreview"
+      @touchstart.passive="handleTouch"
       @click="togglePlayback"
     >
       <slot></slot>
@@ -50,12 +51,22 @@ const audioPlayer = ref<HTMLAudioElement | null>(null);
 const isHovering = ref(false);
 const isPlaying = ref(false);
 const hasBeenPlayed = ref(false);
+const isMobile = ref(false);
+const touchTimeout = ref<number | null>(null);
 
 // Use our audio controller
 const { registerAudio } = useAudioController();
 
+// Check if device is mobile
+function checkMobile() {
+  isMobile.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
 // Initialize audio and register with controller when the component is mounted
 onMounted(() => {
+  // Check if we're on a mobile device
+  checkMobile();
+  
   if (audioPlayer.value && props.previewUrl) {
     // Set initial volume
     audioPlayer.value.volume = 0.7;
@@ -77,6 +88,11 @@ onMounted(() => {
       isPlaying.value = false;
     });
     
+    // Handle browser errors
+    audioPlayer.value.addEventListener('error', () => {
+      isPlaying.value = false;
+    });
+    
     // Preload metadata
     audioPlayer.value.load();
   }
@@ -92,23 +108,35 @@ watch(() => props.previewUrl, (newUrl) => {
 
 // Handle for desktop (hover)
 function startPreview() {
-  if (!props.previewUrl) return;
+  if (!props.previewUrl || isMobile.value) return;
   
   isHovering.value = true;
   
+  // Play the audio if it's not already playing
   if (audioPlayer.value && !isPlaying.value) {
-    audioPlayer.value.play()
-      .then(() => {
-        hasBeenPlayed.value = true;
-      })
-      .catch(error => {
-        console.error('Error playing audio preview:', error);
-        isPlaying.value = false;
-      });
+    // Use a user interaction promise to handle autoplay policy
+    const userInteraction = () => {
+      if (audioPlayer.value) {
+        return audioPlayer.value.play()
+          .then(() => {
+            hasBeenPlayed.value = true;
+          })
+          .catch(error => {
+            // Autoplay blocked or other error
+            isPlaying.value = false;
+          });
+      }
+      return Promise.resolve();
+    };
+    
+    // Try to play
+    userInteraction();
   }
 }
 
 function stopPreview() {
+  if (isMobile.value) return;
+  
   isHovering.value = false;
   
   if (audioPlayer.value && isPlaying.value) {
@@ -117,8 +145,23 @@ function stopPreview() {
   }
 }
 
+// Handle touch events for mobile
+function handleTouch(event: TouchEvent) {
+  if (!isMobile.value) return;
+  
+  // Prevent immediate response to allow for scrolling
+  if (touchTimeout.value) {
+    clearTimeout(touchTimeout.value);
+  }
+  
+  touchTimeout.value = window.setTimeout(() => {
+    // This is a tap, not a scroll - toggle playback
+    togglePlayback(event);
+  }, 100);
+}
+
 // Handler for mobile (click/tap)
-function togglePlayback(event: MouseEvent) {
+function togglePlayback(event: MouseEvent | TouchEvent) {
   // Prevent click from propagating to parent elements
   event.stopPropagation();
   
@@ -135,8 +178,8 @@ function togglePlayback(event: MouseEvent) {
       .then(() => {
         hasBeenPlayed.value = true;
       })
-      .catch(error => {
-        console.error('Error playing audio preview:', error);
+      .catch(() => {
+        // Handle error silently
       });
   }
 }
@@ -150,9 +193,14 @@ onBeforeUnmount(() => {
       isHovering.value = false;
     });
     audioPlayer.value.removeEventListener('pause', () => isPlaying.value = false);
+    audioPlayer.value.removeEventListener('error', () => {});
     
     audioPlayer.value.pause();
     audioPlayer.value.src = '';
+  }
+  
+  if (touchTimeout.value) {
+    clearTimeout(touchTimeout.value);
   }
 });
 </script>

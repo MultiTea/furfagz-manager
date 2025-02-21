@@ -54,12 +54,12 @@ const props = defineProps<{
 }>();
 
 // Added debugging for component props
-onMounted(() => {
-  console.log('PreviewFetchButton mounted for song:', props.song.title);
-  console.log('Link:', props.song.link);
-  console.log('Is admin:', props.isAdmin);
-  console.log('Preview URL:', props.song.preview_url);
-});
+// onMounted(() => {
+//   console.log('PreviewFetchButton mounted for song:', props.song.title);
+//   console.log('Link:', props.song.link);
+//   console.log('Is admin:', props.isAdmin);
+//   console.log('Preview URL:', props.song.preview_url);
+// });
 
 const emit = defineEmits<{
   (e: 'preview-updated', success: boolean, data?: { previewUrl?: string, thumbnailUrl?: string }): void
@@ -83,12 +83,12 @@ const showYouTubeToSpotifyButton = computed(() => {
   const hasNoPreview = !props.song.preview_url;
   const isAdminUser = props.isAdmin;
   
-  // Debug information
-  console.log('Button visibility check for', props.song.title);
-  console.log('- Is YouTube link:', isYouTubeLink, '(Link:', link, ')');
-  console.log('- Has no preview:', hasNoPreview, '(Preview URL:', props.song.preview_url, ')');
-  console.log('- Is admin:', isAdminUser);
-  console.log('- Should show button:', isYouTubeLink && hasNoPreview && isAdminUser);
+  // // Debug information
+  // console.log('Button visibility check for', props.song.title);
+  // console.log('- Is YouTube link:', isYouTubeLink, '(Link:', link, ')');
+  // console.log('- Has no preview:', hasNoPreview, '(Preview URL:', props.song.preview_url, ')');
+  // console.log('- Is admin:', isAdminUser);
+  // console.log('- Should show button:', isYouTubeLink && hasNoPreview && isAdminUser);
   
   return isYouTubeLink && hasNoPreview && isAdminUser;
 });
