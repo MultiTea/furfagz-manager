@@ -197,7 +197,8 @@ const songData = ref({
   title: '',
   link: '',
   notes: '',
-  thumbnail_url: ''
+  thumbnail_url: '',
+  preview_url: null as string | null
 });
 
 const showExpandedForm = ref(false);
@@ -294,13 +295,14 @@ watch(() => songData.value.link, async (newLink: string) => {
 
 function resetForm() {
   songData.value = {
-    artist: '',
-    title: '',
-    link: '',
-    notes: '',
-    thumbnail_url: ''
-  };
-  duration.value = { minutes: 0, seconds: 0 };
+        artist: '',
+        title: '',
+        link: '',
+        notes: '',
+        thumbnail_url: '',
+        preview_url: null
+      };
+      duration.value = { minutes: 0, seconds: 0 };
   error.value = null;
   errors.value = {};
   showExpandedForm.value = false;
@@ -310,6 +312,7 @@ function updateSongDetails(details: any) {
   songData.value.title = details.title;
   songData.value.artist = details.artist;
   songData.value.thumbnail_url = details.thumbnailUrl;
+  songData.value.preview_url = details.previewUrl || null;
   duration.value = details.duration;
 }
 
@@ -338,7 +341,8 @@ async function handleSubmit() {
         title: '',
         link: '',
         notes: '',
-        thumbnail_url: ''
+        thumbnail_url: '',
+        preview_url: null as string | null
       };
       duration.value = { minutes: 0, seconds: 0 };
 

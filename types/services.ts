@@ -3,6 +3,7 @@ export interface MediaDetails {
   title: string;
   artist: string;
   thumbnailUrl: string;
+  previewUrl: string | null;
   duration: {
     minutes: number;
     seconds: number;
@@ -56,6 +57,7 @@ export interface YoutubeApiResponse {
     };
     contentDetails: {
       duration: string;
+      preview_url: string | null;
     };
   }>;
 }
@@ -67,4 +69,5 @@ export interface SpotifyApiResponse {
     images: Array<{ url: string }>;
   };
   duration_ms: number;
+  preview_url?: string | null;
 }

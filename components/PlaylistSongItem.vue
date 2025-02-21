@@ -92,35 +92,40 @@
         />
       </a>
 
-      <!-- Thumbnail -->
-      <div class="flex-shrink-0">
-        <img 
-          v-if="song.thumbnail_url" 
-          :src="song.thumbnail_url" 
-          :alt="song.title"
-          loading="lazy"
-          class="h-14 w-14 object-cover rounded-lg"
-        />
-        <div 
-          v-else 
-          class="h-14 w-14 bg-gray-100 rounded-lg flex items-center justify-center"
-        >
-          <svg 
-            class="h-7 w-7 text-gray-400" 
-            xmlns="http://www.w3.org/2000/svg" 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor"
+<!-- Thumbnail with Preview -->
+<PreviewFetchButton 
+        :song="song"
+        :is-admin="isAdmin" 
+        @preview-updated="handlePreviewUpdated"
+      >
+        <AudioPreview :preview-url="song.preview_url">
+          <img 
+            v-if="song.thumbnail_url" 
+            :src="song.thumbnail_url" 
+            :alt="song.title"
+            class="h-14 w-14 object-cover rounded-lg"
+          />
+          <div 
+            v-else 
+            class="h-14 w-14 bg-gray-100 rounded-lg flex items-center justify-center"
           >
-            <path 
-              stroke-linecap="round" 
-              stroke-linejoin="round" 
-              stroke-width="2" 
-              d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" 
-            />
-          </svg>
-        </div>
-      </div>
+            <svg 
+              class="h-7 w-7 text-gray-400" 
+              xmlns="http://www.w3.org/2000/svg" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path 
+                stroke-linecap="round" 
+                stroke-linejoin="round" 
+                stroke-width="2" 
+                d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" 
+              />
+            </svg>
+          </div>
+        </AudioPreview>
+      </PreviewFetchButton>
 
       <!-- Song Info -->
       <div class="flex-1 min-w-0">
@@ -148,23 +153,43 @@ import { computed } from 'vue';
 import type { Database } from '~/types/supabase';
 import { useFormatDuration } from '~/composables/useFormatDuration';
 import { usePlatformLink } from '~/composables/usePlatformLink';
+import AudioPreview from '~/components/AudioPreview.vue';
+import PreviewFetchButton from './PreviewFetchButton.vue';
+
 
 type PlaylistSong = Database['public']['Tables']['playlist_songs']['Row'];
 
 const props = defineProps<{
-  song: PlaylistSong;
-  isAdmin: boolean;
-  addedBy: string;
+  song: PlaylistSong
+  showActions?: boolean
 }>();
 
 const emit = defineEmits<{
-  (e: 'setlist-toggle', song: PlaylistSong): void;
+  (e: 'edit', song: PlaylistSong): void
+  (e: 'delete', song: PlaylistSong): void
+  (e: 'setlist-toggle', song: PlaylistSong): void
+  (e: 'preview-updated', success: boolean): void
 }>();
 
 const { formatDuration } = useFormatDuration();
 const { getPlatformInfo } = usePlatformLink();
+const { isAdmin, checkAdminStatus } = useAdmin();
+const isNotesVisible = ref(false);
 
 const platformInfo = computed(() => getPlatformInfo(props.song.link));
+
+// Check admin status when component is mounted
+onMounted(async () => {
+  await checkAdminStatus();
+});
+
+// Handle preview update
+function handlePreviewUpdated(success: boolean) {
+  if (success) {
+    // Optional: Show success notification or update UI
+    console.log('Preview updated successfully');
+  }
+}
 
 const platformIcon = computed(() => {
   if (platformInfo.value.name === 'YouTube') {

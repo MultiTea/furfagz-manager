@@ -192,6 +192,7 @@ export const usePlaylistStore = defineStore('playlist', () => {
     link?: string | null;
     notes?: string | null;
     thumbnail_url?: string | null;
+    preview_url?: string | null;
   }) {
     if (!user.value) {
       throw new Error('User must be authenticated to add songs');
@@ -208,7 +209,8 @@ export const usePlaylistStore = defineStore('playlist', () => {
         duration: songData.duration,
         link: songData.link || null,
         notes: songData.notes || null,
-        thumbnail_url: songData.thumbnail_url || null
+        thumbnail_url: songData.thumbnail_url || null,
+        preview_url: songData.preview_url || null
       };
 
       const { data, error: supabaseError } = await supabase

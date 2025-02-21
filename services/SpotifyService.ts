@@ -47,6 +47,7 @@ export class SpotifyService {
     try {
       const token = await this.getValidToken();
 
+      // Fetch basic track info from Spotify API
       const response = await fetch(`https://api.spotify.com/v1/tracks/${trackId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -62,7 +63,25 @@ export class SpotifyService {
       }
 
       const data = await response.json() as SpotifyApiResponse;
-      return this.parseTrackData(data);
+      
+      // Get track details without preview URL first
+      const trackDetails = this.parseTrackData(data);
+      
+      // Use our server API to fetch the preview URL from the embed page
+      try {
+        const previewResponse = await fetch(`/api/spotify/get-preview?trackId=${trackId}`);
+        if (previewResponse.ok) {
+          const previewData = await previewResponse.json();
+          if (previewData.previewUrl) {
+            trackDetails.previewUrl = previewData.previewUrl;
+          }
+        }
+      } catch (previewError) {
+        console.error('Error fetching preview URL:', previewError);
+        // Continue with the original data if preview fetch fails
+      }
+      
+      return trackDetails;
     } catch (error) {
       if (error instanceof MediaServiceError) {
         throw error;
@@ -82,6 +101,7 @@ export class SpotifyService {
       title: data.name,
       artist: data.artists[0].name,
       thumbnailUrl: data.album.images[1]?.url || data.album.images[0]?.url || '',
+      previewUrl: data.preview_url || null,
       duration
     };
   }
