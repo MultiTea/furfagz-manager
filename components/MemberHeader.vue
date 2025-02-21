@@ -12,6 +12,7 @@
           :alt="member.username"
           class="w-full h-full object-cover"
           @load="handleImageLoad"
+          loading="lazy"
           crossorigin="anonymous"
         />
         <div
@@ -129,40 +130,36 @@ function checkIsDarkBackground(color: string) {
 
 async function saveBackgroundColor(color: string) {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('band_members')
-      .update({ 
-        background_color: color,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', props.member.id)
-      .select()
-      .single();
+      .update({ background_color: color })
+      .eq('id', props.member.id);
 
-    if (error) throw error;
-
-    bgColor.value = color;    
-    await membersStore.fetchMembersWithPlaylists();
-
-    return data;
+    if (error) {
+      console.error('Error saving background color:', error);
+    }
   } catch (error) {
-    throw error;
+    console.error('Error saving background color:', error);
+    // Just log the error but don't throw it to prevent breaking the UI
   }
 }
 
-const handleImageLoad = async (event: Event) => {
-  const img = event.target as HTMLImageElement;
-  
-  try {
-    const newColor = await getMedianColor(img.src);
-
-    if (newColor !== props.member.background_color) {
-      await saveBackgroundColor(newColor);
+const handleImageLoad = async () => {
+  if (props.member.avatar_url) {
+    try {
+      // If we don't have a stored color, calculate and save it
+      if (!props.member.background_color) {
+        const newColor = await getMedianColor(props.member.avatar_url);
+        bgColor.value = newColor;
+        await saveBackgroundColor(newColor);
+      }
+      isDarkBackground.value = checkIsDarkBackground(bgColor.value);
+    } catch (error) {
+      console.error('Error processing image:', error);
+      // Fallback to a default color if there's an error
+      bgColor.value = 'rgb(249, 250, 251)';
+      isDarkBackground.value = false;
     }
-
-    isDarkBackground.value = checkIsDarkBackground(newColor);
-  } catch (error) {
-    throw error;
   }
 };
 

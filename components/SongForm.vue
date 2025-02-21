@@ -1,4 +1,3 @@
-// components/SongForm.vue
 <template>
   <div class="mt-8">
     <!-- Link Input Section (Centered) -->
@@ -7,8 +6,8 @@
         Paste a link to auto-fill details or add them manually
       </span>
       <div class="relative flex border-0 border-b-2 border-gray-200 items-end">
-        <label 
-          for="link" 
+        <label
+          for="link"
           class="text-gray-500 text-sm scale-75 transition-all duration-200"
         >
           Link (YouTube/Spotify)
@@ -26,7 +25,7 @@
     </div>
 
     <!-- Expandable Form Section -->
-    <div 
+    <div
       v-if="songData.link"
       class="transition-all duration-500 ease-in-out"
       :class="[
@@ -39,13 +38,13 @@
         <!-- Thumbnail Section -->
         <div class="w-full max-w-sm mx-auto mb-6 sm:mb-0 sm:w-64 sm:flex-shrink-0">
           <div v-if="songData.thumbnail_url" class="relative group">
-            <img 
-              :src="songData.thumbnail_url" 
+            <img
+              :src="songData.thumbnail_url"
               :alt="songData.title"
               class="w-full aspect-square sm:w-64 sm:h-64 object-cover rounded-lg shadow-md"
             />
-            <button 
-              type="button" 
+            <button
+              type="button"
               @click="removeThumbnail"
               class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white opacity-0 group-hover:opacity-100 rounded-lg transition-opacity duration-200"
             >
@@ -65,8 +64,8 @@
         <form @submit.prevent="handleSubmit" class="flex-1 space-y-6">
           <!-- Artist Input -->
           <div class="relative flex border-0 border-b-2 border-gray-200 items-end">
-            <label 
-              for="artist" 
+            <label
+              for="artist"
               class="text-gray-500 text-sm scale-75 transition-all duration-200"
             >
               Artist
@@ -85,8 +84,8 @@
 
           <!-- Title Input -->
           <div class="relative flex border-0 border-b-2 border-gray-200 items-end">
-            <label 
-              for="title" 
+            <label
+              for="title"
               class="text-gray-500 text-sm scale-75 transition-all duration-200"
             >
               Song Title
@@ -105,8 +104,8 @@
 
           <!-- Duration Input -->
           <div class="relative flex border-0 border-b-2 border-gray-200 items-end">
-            <label 
-              for="duration" 
+            <label
+              for="duration"
               class="text-gray-500 text-sm scale-75 transition-all duration-200"
             >
               Duration
@@ -126,8 +125,8 @@
 
           <!-- Notes Input -->
           <div class="relative flex border-0 border-b-2 border-gray-200 items-start pt-2">
-            <label 
-              for="notes" 
+            <label
+              for="notes"
               class="text-gray-500 text-sm scale-75 transition-all duration-200"
             >
               Notes (optional)
@@ -175,7 +174,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { useLoadingState } from '~/composables/useLoadingState';
 import { useFormValidation } from '~/composables/useFormValidation';
 import { LinkParser } from '~/services/LinkParser';
@@ -184,7 +183,7 @@ import { SpotifyService } from '~/services/SpotifyService';
 
 const config = useRuntimeConfig();
 const { isLoading, error, withLoading } = useLoadingState();
-const { errors, validateForm } = useFormValidation();
+const { validateForm, errors } = useFormValidation();
 
 const youtubeService = new YouTubeService(config.public.youtubeApiKey);
 const spotifyService = new SpotifyService();
@@ -201,16 +200,15 @@ const songData = ref({
   thumbnail_url: ''
 });
 
-// Animation control
 const showExpandedForm = ref(false);
 
 // Validation rules
 const validationRules = {
   artist: [{ validate: (v: string) => !!v.trim(), message: 'Artist is required' }],
   title: [{ validate: (v: string) => !!v.trim(), message: 'Title is required' }],
-  link: [{ 
-    validate: (v: string) => !v || /^https?:\/\//i.test(v), 
-    message: 'Link must be a valid URL' 
+  link: [{
+    validate: (v: string) => !v || /^https?:\/\//i.test(v),
+    message: 'Link must be a valid URL'
   }],
   duration: [{
     validate: () => {
@@ -252,7 +250,7 @@ watch(() => songData.value.link, (newLink) => {
 function handleDurationInput(event: Event) {
   const input = event.target as HTMLInputElement;
   let value = input.value.replace(/[^\d:]/g, '');
-  
+
   if (value.includes(':')) {
     const [mins, secs] = value.split(':');
     if (secs?.length > 2) {
@@ -265,14 +263,14 @@ function handleDurationInput(event: Event) {
       value = `${value.slice(0, -2)}:${value.slice(-2)}`;
     }
   }
-  
+
   formattedDuration.value = value;
 }
 
-// Auto-fill from link remains unchanged...
+// Auto-fill from link
 watch(() => songData.value.link, async (newLink: string) => {
   if (!newLink) return;
-  
+
   try {
     if (newLink.includes('youtube.com') || newLink.includes('youtu.be')) {
       const videoId = LinkParser.getYouTubeVideoId(newLink);
@@ -281,10 +279,10 @@ watch(() => songData.value.link, async (newLink: string) => {
         updateSongDetails(details);
       }
     } else if (newLink.includes('spotify.com')) {
-      const trackId = LinkParser.getSpotifyTrackId(newLink)
+      const trackId = LinkParser.getSpotifyTrackId(newLink);
       if (trackId) {
-        const details = await spotifyService.getTrackDetails(trackId)
-        updateSongDetails(details)
+        const details = await spotifyService.getTrackDetails(trackId);
+        updateSongDetails(details);
       }
     }
   } catch (e: unknown) {
@@ -327,7 +325,7 @@ async function handleSubmit() {
   try {
     await withLoading(async () => {
       const durationString = `${duration.value.minutes}:${duration.value.seconds.toString().padStart(2, '0')}:00`;
-      
+
       // Emit the new song data
       await usePlaylistStore().addSong({
         ...songData.value,

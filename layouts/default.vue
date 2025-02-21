@@ -245,6 +245,6 @@ onMounted(() => {
 }
 
 .active-link {
-  @apply border-indigo-500 text-gray-900;
+  @apply border-indigo-500 text-gray-900 h-16;
 }
 </style>

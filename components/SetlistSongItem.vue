@@ -55,6 +55,7 @@
           v-if="song.thumbnail_url" 
           :src="song.thumbnail_url" 
           :alt="song.title"
+          loading="lazy"
           class="h-14 w-14 object-cover rounded-lg"
         />
         <div 
