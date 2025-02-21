@@ -30,7 +30,7 @@
     </div>
     
     <!-- Audio Element (hidden) -->
-    <audio ref="audioPlayer" :src="previewUrl || undefined" preload="auto"></audio>
+    <audio ref="audioPlayer" preload="none"></audio>
   </div>
 </template>
 
@@ -64,9 +64,14 @@ onMounted(() => {
   // Check if we're on a mobile device
   checkMobile();
   
-  if (audioPlayer.value && props.previewUrl) {
+  if (audioPlayer.value) {
     // Set initial volume
     audioPlayer.value.volume = 0.7;
+    
+    // Set the src attribute directly to avoid loading issues
+    if (props.previewUrl) {
+      audioPlayer.value.src = props.previewUrl;
+    }
     
     // Register with audio controller
     const { isActive } = registerAudio(audioPlayer.value, uniqueId.value);
@@ -89,17 +94,23 @@ onMounted(() => {
     audioPlayer.value.addEventListener('error', () => {
       isPlaying.value = false;
     });
-    
-    // Preload metadata
-    audioPlayer.value.load();
   }
 });
 
 // Watch for changes in the preview URL
 watch(() => props.previewUrl, (newUrl) => {
-  if (newUrl && audioPlayer.value) {
-    // Reload audio when URL changes
-    audioPlayer.value.load();
+  if (audioPlayer.value) {
+    if (newUrl) {
+      // Set new URL and prepare the audio
+      audioPlayer.value.src = newUrl;
+      
+      // Load just metadata but don't start downloading the full file yet
+      audioPlayer.value.preload = "metadata";
+      audioPlayer.value.load();
+    } else {
+      // Clear the source if no URL
+      audioPlayer.value.src = '';
+    }
   }
 });
 
@@ -155,8 +166,19 @@ function handleClick(event: MouseEvent) {
     audioPlayer.value.currentTime = 0;
     isPlaying.value = false;
   } else {
+    // Make sure the audio is loaded before trying to play
+    if (audioPlayer.value.src !== props.previewUrl && props.previewUrl) {
+      audioPlayer.value.src = props.previewUrl;
+    }
+    
+    // Force preload auto to ensure the audio loads quickly
+    audioPlayer.value.preload = "auto";
+    
     // If not playing, start it (this will automatically stop others via the controller)
     try {
+      // Ensure the audio starts from the beginning
+      audioPlayer.value.currentTime = 0;
+      
       const playPromise = audioPlayer.value.play();
       
       if (playPromise !== undefined) {
