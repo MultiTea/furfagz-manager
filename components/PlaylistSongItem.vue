@@ -63,7 +63,7 @@
         </div>
       </div>
 
-      <!-- Platform Play Button -->
+      <!-- Platform Play Button
       <a 
         v-if="song.link"
         :href="song.link"
@@ -90,7 +90,7 @@
           class="h-5 w-5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 absolute"
           aria-hidden="true"
         />
-      </a>
+      </a> -->
 
       <!-- Thumbnail with Preview -->
       <div class="relative">
