@@ -5,7 +5,7 @@
       title="My Song Suggestions"
       description="Add songs of your choice you'd like to perform on stage."
     >
-      <SongForm @added="handleSongAdded" />
+      <!-- <SongForm @added="handleSongAdded" /> -->
 
       <!-- Loading State -->
       <LoadingState v-if="isLoading" class="mt-6" />
