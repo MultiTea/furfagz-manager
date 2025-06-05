@@ -19,14 +19,18 @@
         <!-- Regular list when not admin -->
         <template v-if="!isAdmin">
           <div class="mt-6 space-y-4">
-            <SetlistSongItem
+            <SongItem
               v-for="(song, index) in setlistSongs"
               :key="song.id"
               :song="song"
               :position="index + 1"
+              :is-setlist="true"
               :is-admin="false"
-              :added-by="getMemberName(song.member_id)"
-            />
+            >
+              <template #actions>
+                <img :src="getMemberName(song.member_id)" class="w-10 h-10 rounded-full object-cover"/>
+              </template>
+            </SongItem>
           </div>
         </template>
 
@@ -63,13 +67,27 @@
                   @dragend="dragEnd"
                   :class="{ 'opacity-50': draggedItem === index }"
                 >
-                  <SetlistSongItem
+                  <SongItem
                     :song="song"
                     :position="index + 1"
+                    :is-setlist="true"
                     :is-admin="true"
-                    :added-by="getMemberName(song.member_id)"
-                    @remove="removeFromSetlist(song)"
-                  />
+                  >
+                    <template #actions>
+                      <div class="flex items-center space-x-2">
+                        <img :src="getMemberName(song.member_id)" class="w-10 h-10 rounded-full object-cover"/>
+                        
+                        <button
+                          @click="removeFromSetlist(song)"
+                          class="text-red-500 hover:text-red-600"
+                        >
+                          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </template>
+                  </SongItem>
                 </div>
 
                 <!-- Drop zone after each item -->
@@ -239,7 +257,7 @@ const formattedTotalDuration = computed(() => {
 // Get member name by ID
 function getMemberName(memberId: string) {
   const member = members.value.find(m => m.id === memberId);
-  return member?.username || 'Unknown Member';
+  return member?.avatar_url || 'Unknown Member';
 }
 
 // Drag and drop handlers

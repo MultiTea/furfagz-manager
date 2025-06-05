@@ -22,11 +22,12 @@
           <EmptyState v-if="member.playlist_songs.length === 0" message="No songs added yet." />
           
           <div v-else class="space-y-4">
-            <PlaylistSongItem
+            <SongItem
               v-for="song in sortedSongs(member.playlist_songs)"
               :key="song.id"
               :song="song"
               :is-admin="userIsAdmin"
+              :is-playlist="true"
               @setlist-toggle="handleSetlistToggle"
             />
           </div>
@@ -53,13 +54,13 @@ import { useSupabaseAuth } from '~/composables/useSupabaseAuth';
 import { useAdmin } from '~/composables/useAdmin';
 import { LoadingState, ErrorState, EmptyState } from '~/components/ui';
 import MemberHeader from '~/components/MemberHeader.vue';
-import PlaylistSongItem from '~/components/PlaylistSongItem.vue';
+import SongItem from '~/components/SongItem.vue';
 
 type PlaylistSong = Database['public']['Tables']['playlist_songs']['Row'];
 
 const { isLoading, error, withLoading } = useLoadingState();
 const { checkAuthAndRedirect } = useSupabaseAuth();
-const { isAdmin, checkAdminStatus } = useAdmin();
+const { checkAdminStatus, isAdmin } = useAdmin();
 
 // Store admin status locally to avoid passing the reactive reference to multiple components
 const userIsAdmin = ref(false);
