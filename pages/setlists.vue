@@ -29,6 +29,7 @@
             >
               <template #actions>
                 <img :src="getMemberName(song.member_id)" class="w-10 h-10 rounded-full object-cover"/>
+                <span class="text-sm">{{ getMemberName(song.member_id) }}</span>
               </template>
             </SongItem>
           </div>
@@ -190,7 +191,6 @@ import type { Database } from '~/types/supabase';
 import { useLoadingState } from '~/composables/useLoadingState';
 import { useSupabaseAuth } from '~/composables/useSupabaseAuth';
 import { useFormatDuration } from '~/composables/useFormatDuration';
-import SetlistSongItem from '~/components/SetlistSongItem.vue';
 import { LoadingState, ErrorState, EmptyState, BaseCard } from '~/components/ui';
 
 type PlaylistSong = Database['public']['Tables']['playlist_songs']['Row'];
@@ -370,11 +370,6 @@ onMounted(async () => {
   pointer-events: all;
   min-height: 0.5rem;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.interactive-drop-zone:hover {
-  background-color: rgba(79, 70, 229, 0.03);
-  
 }
 
 /* Increase the hit area using pseudo-elements */

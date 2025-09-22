@@ -19,7 +19,7 @@
 
       <!-- Song List -->
       <div v-else class="mt-6 space-y-4">
-        <SongItem
+        <SongListItem
           v-for="song in songs"
           :key="song.id"
           :song="song"
@@ -45,7 +45,7 @@
               </button>
             </div>
           </template>
-        </SongItem>
+        </SongListItem>
       </div>
 
       <!-- Edit Song Modal -->
@@ -109,7 +109,7 @@ import { useLoadingState } from '~/composables/useLoadingState';
 import { useFormValidation } from '~/composables/useFormValidation';
 import { useSupabaseAuth } from '~/composables/useSupabaseAuth';
 import SongForm from '~/components/SongForm.vue';
-import SongItem from '~/components/SongItem.vue';
+import SongListItem from '~/components/SongListItem.vue';
 import {
   BaseButton,
   BaseCard,
